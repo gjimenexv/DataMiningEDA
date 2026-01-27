@@ -198,14 +198,19 @@ class Account(ABC):
   def number(self):
     return self.__number
   @property
+  def account_number(self):
+    return self.__account_number
+  @property
   def balance(self):
     return self.__balance
-  
   
   #SETS
   @number.setter
   def number(self, p_number):
     self.__number = p_number
+  @account_number.setter
+  def account_number(self, p_account_number):
+    self.__account_number = p_account_number
   @balance.setter
   def balance(self, p_balance):
     self.__balance = p_balance
@@ -213,39 +218,42 @@ class Account(ABC):
   #METHODS
   @abstractmethod
   def deposit(self, p_amount): 
-    self.__balance += p_amount
+    pass
   @abstractmethod
   def withdraw(self, p_amount):
-    self.__balance -= p_amount
+    pass
   @abstractmethod
   def create_transaction(self):
-   pass
+    pass
 
   def __str__(self):
     return f'Cuenta: número: {self.__number}, saldo: {self.__balance}'
   
 class CurrentAccount(Account):
   def __init__(): #Default constructor
-    super().__init__()
-    self.__account_number = ""
-    self.__balance = 0.0
+    super().account_number = ""
+    super().balance = 0.0
   
   def __init__(self, p_account_number, p_balance): #Parametrized constructor
-    super().__init__(p_account_number, p_balance)
+    super().account_number = p_account_number
+    super().balance = p_balance
 
   #METHODS
-  def withdraw(self, p_amount):
-    super().withdraw(p_amount)
+  def withdraw(self, balance, p_amount):
+    balance -= p_amount
+    return balance
 
   def __str__(self):
     return f'Cuenta corriente: número de cuenta: {self.__account_number}, saldo: {self.__balance}'
 
 class SavingAccount(Account):
   def __init__(): #Default constructor
-    super().__init__()
+    super().account_number = ""
+    super().balance = 0.0
 
   def __init__(self, p_account_number, p_balance):
-    super().__init__(p_account_number, p_balance)
+    super().account_number = p_account_number
+    super().balance = p_balance
 
   #METHODS
 
