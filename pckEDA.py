@@ -1,0 +1,446 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import seaborn as sns
+
+#import umap as um
+import math
+import statistics
+
+pd.options.display.max_rows = 10
+import warnings
+warnings.filterwarnings('ignore')
+
+
+class AnalisisDatosExploratorio():
+    """Clase para realizar un análisis exploratorio de datos (EDA) en un DataFrame de pandas."""
+
+    def __init__(self, path, num):
+        """Inicializa la clase cargando los datos desde un archivo CSV.
+
+        Args:
+            path: Ruta del archivo CSV a cargar.
+            num: Modo de lectura del CSV (1: separador coma con índice, 2: separador punto y coma sin índice).
+        """
+        self.__df = self.__cargarDatos(path, num)
+
+    @property
+    def df(self):
+        """Propiedad para acceder al DataFrame interno de la clase.
+
+        Returns:
+            pd.DataFrame: El DataFrame utilizado para el análisis exploratorio.
+        """
+        return self.__df
+
+    @df.setter
+    def df(self, p_df):
+        """Setter para establecer el DataFrame interno de la clase.
+
+        Args:
+            p_df: Nuevo DataFrame a asignar.
+        """
+        self.__df = p_df
+
+    def analisisNumerico(self):
+        """Filtra el DataFrame para conservar únicamente las columnas con datos numéricos."""
+        self.__df = self.__df.select_dtypes(include = ["number"])
+
+    def analisisCompleto(self):
+        """Convierte las variables categóricas del DataFrame en variables dummy (one-hot encoding)."""
+        self.__df = pd.get_dummies(self.__df)
+
+    def __cargarDatos(self, path, num):
+        """Carga los datos desde un archivo CSV según el modo indicado.
+
+        Args:
+            path: Ruta del archivo CSV.
+            num: Modo de lectura.
+                1 - Separador coma, decimal punto, primera columna como índice.
+                2 - Separador punto y coma, decimal punto, sin columna índice.
+
+        Returns:
+            pd.DataFrame: DataFrame con los datos cargados.
+        """
+        if num == 1:
+            return pd.read_csv(path,
+            sep = ",",
+            decimal = ".",
+            index_col = 0)
+        if num == 2:
+            return pd.read_csv(path,
+            sep = ";",
+            decimal = ".")
+
+    def analisis(self):
+        """Realiza un análisis descriptivo completo del DataFrame.
+
+        Imprime las dimensiones, las primeras filas, estadísticas descriptivas
+        (media, mediana, desviación estándar, máximo, mínimo y cuantiles)
+        y genera gráficos de visualización.
+        """
+        print("Dimensiones:",self.__df.shape)
+        print(self.__df.head)
+        print(self.__df.describe())
+        self.__df.dropna().describe()
+        self.__df.mean(numeric_only=True)
+        self.__df.median(numeric_only=True)
+        self.__df.std(numeric_only=True, ddof = 0)
+        self.__df.max(numeric_only=True)
+        self.__df.min(numeric_only=True)
+        self.__df.quantile(np.array([0,.33,.50,.75,1]),numeric_only=True)
+
+    def estadisticasDescriptivas(self):
+        """Imprime las estadísticas descriptivas de todas las columnas numéricas en dos bloques.
+
+        Bloque 1 - Estadísticas básicas por columna:
+            count, mean, std, min, 25%, 50%, 75%, max.
+
+        Bloque 2 - Estadísticas adicionales por columna:
+            varianza, asimetría (skewness) y curtosis (kurtosis).
+        """
+        numericas = self.__df.select_dtypes(include=["number"])
+
+        print("=" * 60)
+        print("ESTADÍSTICAS BÁSICAS")
+        print("=" * 60)
+        print(numericas.describe().T.to_string())
+
+        print("\n" + "=" * 60)
+        print("ESTADÍSTICAS ADICIONALES")
+        print("=" * 60)
+        adicionales = pd.DataFrame({
+            "varianza": numericas.var(),
+            "asimetría": numericas.skew(),
+            "curtosis": numericas.kurt()
+        })
+        print(adicionales.to_string())
+
+    def graficos(self):
+        """Genera un conjunto de gráficos exploratorios: boxplot, densidad, histograma y correlación."""
+        self.__graficosBoxplot()
+        self.__funcionDensidad()
+        self.__histograma()
+        self.__correlaciones()
+        self.__graficoDeCorrelacion()
+
+    def __graficosBoxplot(self):
+        """Genera un gráfico de boxplot para todas las variables del DataFrame."""
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize = (15,8), dpi = 200)
+        boxplots = self.__df.boxplot(return_type='axes',ax=ax)
+        plt.show()
+
+    def __funcionDensidad(self):
+        """Genera gráficos de densidad (KDE) para cada variable del DataFrame."""
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize = (15,8), dpi = 200)
+        self.__df.plot(kind='density', subplots=True, layout=(4,4), sharex=False, ax=ax)
+        plt.show()
+
+    def __histograma(self):
+        """Genera histogramas con 20 bins para cada variable del DataFrame."""
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize = (15,8), dpi = 200)
+        self.__df.hist(bins=20, ax=ax)
+        plt.show()
+
+    def __correlaciones(self):
+        """Calcula e imprime la matriz de correlación de las variables numéricas."""
+        print("Matriz de Correlación:")
+        corr = self.__df.corr(numeric_only=True)
+        print(corr)
+        
+    def __graficoDeCorrelacion(self):
+        """Genera un heatmap de la matriz de correlación usando imshow."""
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize = (15,8), dpi = 200)
+        corr = self.__df.corr(numeric_only=True)
+        im = ax.imshow(corr, cmap='coolwarm', vmin=-1, vmax=1)
+        ax.set_xticks(np.arange(len(corr.columns)))
+        ax.set_yticks(np.arange(len(corr.columns)))
+        ax.set_xticklabels(corr.columns, rotation=90)
+        ax.set_yticklabels(corr.columns)
+        fig.colorbar(im)
+        plt.show()
+
+    def mostrarTamaño(self):
+        """Imprime el número de filas y columnas del DataFrame."""
+        print("Tamaño del DataFrame:", self.__df.shape)
+
+    def muestraUltimosValores(self, n):
+        """Imprime las últimas n filas del DataFrame.
+
+        Args:
+            n: Número de filas a mostrar desde el final.
+        """
+        print("Últimos {} valores: {}".format(n, self.__df.tail(n)))
+
+    def muestraPrimerosValores(self, n):
+        """Imprime las primeras n filas del DataFrame.
+
+        Args:
+            n: Número de filas a mostrar desde el inicio.
+        """
+        print("Primeros {} valores: {}".format(n, self.__df.head(n)))
+
+    def muestraTiposDeDatos(self):
+        """Imprime los tipos de datos de cada columna del DataFrame."""
+        print(self.__df.dtypes)
+
+    def eliminarColumna(self, columna):
+        """Elimina una columna del DataFrame.
+
+        Args:
+            columna: Nombre de la columna a eliminar.
+        """
+        self.__df = self.__df.drop(columns=[columna])
+
+    def eliminarColumnas(self, columnas):
+        """Elimina múltiples columnas del DataFrame.
+
+        Args:
+            columnas: Lista con los nombres de las columnas a eliminar.
+        """
+        self.__df = self.__df.drop(columns=columnas)
+
+    def eliminarFilas(self, columna, valor):
+        """Elimina las filas donde una columna tenga un valor específico.
+
+        Args:
+            columna: Nombre de la columna a evaluar.
+            valor: Valor que deben tener las filas a eliminar.
+        """
+        self.__df = self.__df[self.__df[columna] != valor]
+
+    def renombrarColumna(self, columna_antigua, columna_nueva):
+        """Renombra una columna del DataFrame.
+
+        Args:
+            columna_antigua: Nombre actual de la columna.
+            columna_nueva: Nuevo nombre para la columna.
+        """
+        self.__df = self.__df.rename(columns={columna_antigua: columna_nueva})
+
+    def renombrarColumnas(self, columnas_antiguas, columnas_nuevas):
+        """Renombra múltiples columnas del DataFrame.
+
+        Args:
+            columnas_antiguas: Lista con los nombres actuales de las columnas.
+            columnas_nuevas: Lista con los nuevos nombres correspondientes.
+        """
+        self.__df = self.__df.rename(columns=dict(zip(columnas_antiguas, columnas_nuevas)))
+
+    def codificarCategorica(self, columna, mapeo=None):
+        """Transforma una columna categórica a valores numéricos (label encoding o mapeo personalizado).
+
+        Existen dos modos de uso:
+
+        1. Label encoding automático (mapeo=None):
+           Asigna un entero a cada categoría única en orden alfabético,
+           comenzando desde 0. Útil cuando las categorías no tienen un
+           orden o jerarquía significativa.
+           Ejemplo: ["City Hotel", "Resort Hotel"] → [0, 1]
+
+        2. Mapeo personalizado / enum (mapeo={...}):
+           Aplica la conversión definida por el usuario mediante un
+           diccionario {categoria: valor_numerico}. Útil cuando las
+           categorías tienen un orden lógico o jerarquía definida
+           (encoding ordinal), o cuando se requieren valores específicos
+           para cada categoría (tipo enum).
+           Ejemplo: {"No Deposit": 0, "Non Refund": 1, "Refundable": 2}
+
+        Args:
+            columna: Nombre de la columna categórica a transformar.
+            mapeo: Diccionario opcional con la correspondencia {categoria: valor_numerico}.
+                   Si es None, se aplica label encoding automático.
+
+        Raises:
+            ValueError: Si la columna no existe en el DataFrame.
+
+        Examples:
+            # Label encoding automático
+            eda.codificarCategorica("hotel")
+
+            # Mapeo personalizado (ordinal / enum)
+            eda.codificarCategorica("deposit_type", mapeo={"No Deposit": 0, "Non Refund": 1, "Refundable": 2})
+        """
+        if columna not in self.__df.columns:
+            raise ValueError(f"La columna '{columna}' no existe en el DataFrame.")
+
+        if mapeo is None:
+            categorias = sorted(self.__df[columna].dropna().unique())
+            mapeo = {cat: i for i, cat in enumerate(categorias)}
+
+        self.__df[columna] = self.__df[columna].map(mapeo)
+        print(f"Columna '{columna}' codificada con el mapeo:")
+        for cat, val in mapeo.items():
+            print(f"  {cat} → {val}")
+
+    def eliminarDuplicados(self):
+        """Elimina las filas duplicadas del DataFrame."""
+        antes = self.__df.shape[0]
+        self.__df = self.__df.drop_duplicates()
+        despues = self.__df.shape[0]
+        print(f"Se eliminaron {antes - despues} filas duplicadas. Total actual: {despues} filas.")
+
+    def eliminarNulos(self):
+        """Elimina las filas con valores nulos del DataFrame.
+
+        Imprime la cantidad de nulos por columna antes y después de la eliminación.
+        """
+        nulos_antes = self.__df.isnull().sum().sum()
+        filas_antes = self.__df.shape[0]
+        print(f"Cantidad total de valores nulos antes de eliminar: {nulos_antes} en {filas_antes} filas.")
+        print(self.__df.isnull().sum())
+        self.__df = self.__df.dropna()
+        self.__df.count()
+        nulos_despues = self.__df.isnull().sum().sum()
+        print(f"Cantidad total de valores nulos después de eliminar: {nulos_despues} en {self.__df.shape[0]} filas.")
+
+    def reemplazarNulos(self, columna, metodo="mean"):
+        """Reemplaza los valores nulos de una columna con la media o la mediana.
+
+        Args:
+            columna: Nombre de la columna a procesar.
+            metodo: Método de imputación, "mean" para media o "median" para mediana.
+                    Por defecto usa "mean".
+
+        Raises:
+            ValueError: Si el método indicado no es "mean" ni "median".
+        """
+        if metodo == "mean":
+            valor = self.__df[columna].mean()
+        elif metodo == "median":
+            valor = self.__df[columna].median()
+        else:
+            raise ValueError("Método no válido. Usa 'mean' o 'median'.")
+
+        nulos_antes = self.__df[columna].isnull().sum()
+        self.__df[columna] = self.__df[columna].fillna(valor)
+        print(f"Columna '{columna}': {nulos_antes} nulos reemplazados con {metodo} ({valor:.2f})")
+
+    def detectorDeOutliers(self, columna):
+        """Detecta e imprime los outliers de una columna usando el método IQR.
+
+        Args:
+            columna: Nombre de la columna a analizar.
+        """
+        Q1 = self.__df[columna].quantile(0.25)
+        Q3 = self.__df[columna].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        outliers = self.__df[(self.__df[columna] < lower_bound) | (self.__df[columna] > upper_bound)]
+        print("Outliers en la columna '{}':".format(columna))
+        print(outliers)
+
+    def eliminarOutliers(self, columna):
+        """Elimina los outliers de una columna usando el método IQR (1.5 * IQR).
+
+        Args:
+            columna: Nombre de la columna de la cual eliminar outliers.
+        """
+        Q1 = self.__df[columna].quantile(0.25)
+        Q3 = self.__df[columna].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        self.__df = self.__df[(self.__df[columna] >= lower_bound) & (self.__df[columna] <= upper_bound)]
+
+    def graficarFrecuencias(self, title, xlabel, ylabel, columna):
+        """Genera un gráfico de barras con las 40 categorías más frecuentes de la columna parametro.
+
+        Args:
+            title: Título del gráfico.
+            xlabel: Etiqueta del eje X.
+            ylabel: Etiqueta del eje Y.
+        """
+        self.__df[columna].value_counts().nlargest(40).plot(kind='bar', figsize=(10,5))
+        plt.title(title)
+        plt.ylabel(ylabel)
+        plt.xlabel(xlabel)
+        plt.show()
+
+    def graficarHeatmap(self, title):
+        """Genera un heatmap de correlación usando seaborn con anotaciones numéricas.
+
+        Args:
+            title: Título del gráfico.
+            
+        """
+        corr = self.__df.corr()
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', square=True, cbar_kws={"shrink": .8})
+        plt.title(title + " - Heatmap de Correlación")
+        plt.show()
+
+    def graficarScatter(self, x_col, y_col):
+        """Genera un gráfico de dispersión (scatter plot) entre dos columnas.
+
+        Args:
+            x_col: Nombre de la columna para el eje X.
+            y_col: Nombre de la columna para el eje Y.
+        """
+        plt.figure(figsize=(10, 6))
+        sns.scatterplot(data=self.__df, x=x_col, y=y_col)
+        plt.title(f"Scatter Plot of {x_col} vs {y_col}")
+        plt.xlabel(x_col)
+        plt.ylabel(y_col)
+        plt.show()
+
+    def graficarBoxplot(self, column):
+        """Genera un boxplot para una columna específica del DataFrame.
+
+        Args:
+            column: Nombre de la columna a graficar.
+        """
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x=self.__df[column])
+        plt.title(f"Boxplot of {column}")
+        plt.xlabel(column)
+        plt.show()
+    
+    def graficarBoxplotComparativo(self, x_col, y_col):
+        """Genera un boxplot comparativo entre dos columnas del DataFrame.
+
+        Args:
+            x_col: Nombre de la columna para el eje X (categoría).
+            y_col: Nombre de la columna para el eje Y (valores numéricos).
+        """
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x=self.__df[x_col], y=self.__df[y_col])
+        plt.title(f"Boxplot Comparativo de {y_col} por {x_col}")
+        plt.xlabel(x_col)
+        plt.ylabel(y_col)
+        plt.xticks(rotation=45)
+        plt.show()
+
+    def graficarBoxplotTodasColumnas(self):
+        """Genera un boxplot individual para cada columna numérica del DataFrame."""
+        numeric_cols = self.__df.select_dtypes(include='number').columns
+        for col in numeric_cols:
+            plt.figure(figsize=(8, 5))
+            sns.boxplot(x=self.__df[col])
+            plt.title(f"Boxplot de {col}")
+            plt.xlabel(col)
+            plt.show()
+            
+# Boxplot
+    def graficoBoxplotOriginal(self):
+        """Genera un gráfico de boxplot para cada columna numérica del DataFrame.
+        Organiza los gráficos en una cuadrícula de 3 columnas y filas suficientes para mostrar todas las variables numéricas.
+        """
+        columnas_numericas = self.__df.select_dtypes(include='number').columns
+        n = len(columnas_numericas)
+        columnas = 3
+        filas = math.ceil(n / columnas)
+        fig, axes = plt.subplots(filas, columnas, figsize=(5 * columnas, 4 * filas), dpi=158)
+        axes = axes.flatten()
+        colores = sns.color_palette("Set3", n)
+        for i, col in enumerate(columnas_numericas):
+            sns.boxplot(y=self.__df[col], ax=axes[i], color=colores[i])
+            axes[i].set_title(f"Boxplot de {col}", fontsize=10)
+            axes[i].set_ylabel(col)
+            axes[i].grid(True, linestyle='-', alpha=0.5)
+        for j in range(1 + 1, len(axes)):
+            fig.delaxes(axes[j])
+        plt.tight_layout()
+        plt. show()
+    
