@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import seaborn as sns
+from prince import PCA as PCA_Prince
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 #import umap as um
 import math
@@ -469,6 +472,207 @@ class Clustering(NoSupervisado):
         """
         super().__init__(df)
         self.n_clusters = n_clusters
+
+
+class ACP(NoSupervisado):
+    """Análisis de Componentes Principales (ACP) como algoritmo no supervisado de reducción de dimensionalidad.
+
+    Hereda de NoSupervisado y utiliza la biblioteca Prince para ajustar el modelo PCA,
+    calculando coordenadas, correlaciones, contribuciones y calidad de representación (cos²)
+    de los individuos y variables en el espacio reducido.
+    """
+
+    def __init__(self, datos, n_componentes=5):
+        """Inicializa el modelo ACP ajustándolo sobre los datos proporcionados.
+
+        Args:
+            datos: DataFrame de pandas con los datos numéricos a analizar.
+            n_componentes: Número de componentes principales a retener. Por defecto 5.
+        """
+        super().__init__(datos)
+        self.__datos = datos
+        self.__modelo = PCA_Prince(n_components=n_componentes).fit(self.__datos)
+        self.__correlacion_var = self.__modelo.column_correlations
+        self.__coordenadas_ind = self.__modelo.row_coordinates(self.__datos)
+        self.__contribucion_ind = self.__modelo.row_contributions_
+        self.__cos2_ind = self.__modelo.row_cosine_similarities(self.__datos)
+        self.__var_explicada = self.__modelo.percentage_of_variance_
+
+    @property
+    def datos(self):
+        """Devuelve los datos utilizados para el análisis."""
+        return self.__datos
+
+    @datos.setter
+    def datos(self, datos):
+        """Permite actualizar los datos.
+
+        Args:
+            datos: Nuevo DataFrame a asignar.
+        """
+        self.__datos = datos
+
+    @property
+    def modelo(self):
+        """Devuelve el modelo PCA ajustado."""
+        return self.__modelo
+
+    @modelo.setter
+    def modelo(self, modelo):
+        """Permite actualizar el modelo PCA ajustado.
+
+        Args:
+            modelo: Nuevo modelo PCA_Prince ajustado.
+        """
+        self.__modelo = modelo
+
+    @property
+    def correlacion_var(self):
+        """Devuelve la correlación de las variables originales con cada componente principal."""
+        return self.__correlacion_var
+
+    @correlacion_var.setter
+    def correlacion_var(self, correlacion_var):
+        """Args:
+            correlacion_var: Nueva matriz de correlación variables-componentes.
+        """
+        self.__correlacion_var = correlacion_var
+
+    @property
+    def coordenadas_ind(self):
+        """Devuelve las coordenadas de los individuos en el espacio de componentes principales."""
+        return self.__coordenadas_ind
+
+    @coordenadas_ind.setter
+    def coordenadas_ind(self, coordenadas_ind):
+        """Args:
+            coordenadas_ind: Nuevas coordenadas de los individuos.
+        """
+        self.__coordenadas_ind = coordenadas_ind
+
+    @property
+    def contribucion_ind(self):
+        """Devuelve la contribución de cada individuo a los componentes principales."""
+        return self.__contribucion_ind
+
+    @contribucion_ind.setter
+    def contribucion_ind(self, contribucion_ind):
+        """Args:
+            contribucion_ind: Nueva contribución de los individuos.
+        """
+        self.__contribucion_ind = contribucion_ind
+
+    @property
+    def cos2_ind(self):
+        """Devuelve la calidad de representación (cos²) de cada individuo en el plano principal."""
+        return self.__cos2_ind
+
+    @cos2_ind.setter
+    def cos2_ind(self, cos2_ind):
+        """Args:
+            cos2_ind: Nuevo cos² de los individuos.
+        """
+        self.__cos2_ind = cos2_ind
+
+    @property
+    def var_explicada(self):
+        """Devuelve el porcentaje de varianza explicada por cada componente principal."""
+        return self.__var_explicada
+
+    @var_explicada.setter
+    def var_explicada(self, var_explicada):
+        """Args:
+            var_explicada: Nuevo vector de varianza explicada.
+        """
+        self.__var_explicada = var_explicada
+
+    def plot_plano_principal(self, ejes=[0, 1], ind_labels=True, titulo='Plano Principal'):
+        """Genera un gráfico de dispersión de los individuos en el plano principal.
+
+        Args:
+            ejes: Lista de dos enteros indicando los componentes a graficar. Por defecto [0, 1].
+            ind_labels: Si True, muestra las etiquetas de los individuos. Por defecto True.
+            titulo: Título del gráfico.
+        """
+        x = self.coordenadas_ind[ejes[0]].values
+        y = self.coordenadas_ind[ejes[1]].values
+        plt.style.use('seaborn-v0_8-bright')
+        plt.scatter(x, y, color='gray')
+        plt.title(titulo)
+        plt.axhline(y=0, color='dimgrey', linestyle='--')
+        plt.axvline(x=0, color='dimgrey', linestyle='--')
+        inercia_x = round(self.var_explicada[ejes[0]], 2)
+        inercia_y = round(self.var_explicada[ejes[1]], 2)
+        plt.xlabel('Componente ' + str(ejes[0]) + ' (' + str(inercia_x) + '%)')
+        plt.ylabel('Componente ' + str(ejes[1]) + ' (' + str(inercia_y) + '%)')
+        if ind_labels:
+            for i, txt in enumerate(self.coordenadas_ind.index):
+                plt.annotate(txt, (x[i], y[i]))
+
+    def plot_circulo(self, ejes=[0, 1], var_labels=True, titulo='Círculo de Correlación'):
+        """Genera el círculo de correlación de las variables con los componentes principales.
+
+        Args:
+            ejes: Lista de dos enteros indicando los componentes a graficar. Por defecto [0, 1].
+            var_labels: Si True, muestra las etiquetas de las variables. Por defecto True.
+            titulo: Título del gráfico.
+        """
+        cor = self.correlacion_var.iloc[:, ejes].values
+        plt.style.use('seaborn-v0_8-bright')
+        c = plt.Circle((0, 0), radius=1, color='steelblue', fill=False)
+        plt.gca().add_patch(c)
+        plt.axis('scaled')
+        plt.title(titulo)
+        plt.axhline(y=0, color='dimgrey', linestyle='--')
+        plt.axvline(x=0, color='dimgrey', linestyle='--')
+        inercia_x = round(self.var_explicada[ejes[0]], 2)
+        inercia_y = round(self.var_explicada[ejes[1]], 2)
+        plt.xlabel('Componente ' + str(ejes[0]) + ' (' + str(inercia_x) + '%)')
+        plt.ylabel('Componente ' + str(ejes[1]) + ' (' + str(inercia_y) + '%)')
+        for i in range(cor.shape[0]):
+            plt.arrow(0, 0, cor[i, 0] * 0.95, cor[i, 1] * 0.95, color='steelblue',
+                      alpha=0.5, head_width=0.05, head_length=0.05)
+            if var_labels:
+                plt.text(cor[i, 0] * 1.05, cor[i, 1] * 1.05, self.correlacion_var.index[i],
+                         color='steelblue', ha='center', va='center')
+
+    def plot_sobreposicion(self, ejes=[0, 1], ind_labels=True,
+                           var_labels=True, titulo='Sobreposición Plano-Círculo'):
+        """Genera un gráfico de sobreposición entre el plano principal y el círculo de correlación.
+
+        Args:
+            ejes: Lista de dos enteros indicando los componentes a graficar. Por defecto [0, 1].
+            ind_labels: Si True, muestra las etiquetas de los individuos. Por defecto True.
+            var_labels: Si True, muestra las etiquetas de las variables. Por defecto True.
+            titulo: Título del gráfico.
+        """
+        x = self.coordenadas_ind[ejes[0]].values
+        y = self.coordenadas_ind[ejes[1]].values
+        cor = self.correlacion_var.iloc[:, ejes]
+        scale = min((max(x) - min(x) / (max(cor[ejes[0]]) - min(cor[ejes[0]]))),
+                    (max(y) - min(y) / (max(cor[ejes[1]]) - min(cor[ejes[1]])))) * 0.7
+        cor = self.correlacion_var.iloc[:, ejes].values
+        plt.style.use('seaborn-v0_8-bright')
+        plt.axhline(y=0, color='dimgrey', linestyle='--')
+        plt.axvline(x=0, color='dimgrey', linestyle='--')
+        inercia_x = round(self.var_explicada[ejes[0]], 2)
+        inercia_y = round(self.var_explicada[ejes[1]], 2)
+        plt.xlabel('Componente ' + str(ejes[0]) + ' (' + str(inercia_x) + '%)')
+        plt.ylabel('Componente ' + str(ejes[1]) + ' (' + str(inercia_y) + '%)')
+        plt.scatter(x, y, color='gray')
+        if ind_labels:
+            for i, txt in enumerate(self.coordenadas_ind.index):
+                plt.annotate(txt, (x[i], y[i]))
+        for i in range(cor.shape[0]):
+            plt.arrow(0, 0, cor[i, 0] * scale, cor[i, 1] * scale, color='steelblue',
+                      alpha=0.5, head_width=0.05, head_length=0.05)
+            if var_labels:
+                plt.text(cor[i, 0] * scale * 1.15, cor[i, 1] * scale * 1.15,
+                         self.correlacion_var.index[i],
+                         color='steelblue', ha='center', va='center')
+
+    def __str__(self):
+        return ''
 
 
 #Supervisado
