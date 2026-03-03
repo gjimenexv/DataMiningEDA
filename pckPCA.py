@@ -39,39 +39,78 @@ class ACP:
         
     @property
     def modelo(self):
+        """Devuelve el modelo de ACP ajustado.
+        """
         return self.__modelo
     @property
     def correlacion_var(self):
+        """Devuelve la matriz de correlación de las variables con los componentes principales.
+        """
         return self.__correlacion_var
     @property
     def coordenadas_ind(self):
+        """Devuelve las coordenadas de los individuos en el espacio de los componentes principales.
+        """
         return self.__coordenadas_ind
     @property
     def contribucion_ind(self):
+        """Devuelve la contribución de los individuos a los componentes principales.
+        """
         return self.__contribucion_ind
     @property
     def cos2_ind(self):
+        """Devuelve el coseno del ángulo entre los individuos y los componentes principales.
+        """
         return self.__cos2_ind
     @property
     def var_explicada(self):
+        """Devuelve el porcentaje de varianza explicada por cada componente principal.
+        """
         return self.__var_explicada
     @var_explicada.setter
     def var_explicada(self, var_explicada):
+        """Permite actualizar el porcentaje de varianza explicada.
+        """
         self.__var_explicada = var_explicada
+        
     @modelo.setter
     def modelo(self, modelo):
+        """Permite actualizar el modelo de ACP ajustado.
+        Args:
+            modelo (PCA_Prince): Nuevo modelo de ACP ajustado.
+        """
         self.__modelo = modelo
+        
     @correlacion_var.setter
     def correlacion_var(self, correlacion_var):
+        """Permite actualizar la matriz de correlación de las variables con los componentes principales.
+        Args:
+            correlacion_var (pd.DataFrame): Nueva matriz de correlación.
+        """
         self.__correlacion_var = correlacion_var
+        
     @coordenadas_ind.setter
     def coordenadas_ind(self, coordenadas_ind):
+        """Permite actualizar las coordenadas de los individuos en el espacio de los componentes principales.
+        Args:
+            coordenadas_ind (pd.DataFrame): Nuevas coordenadas de los individuos.
+        """
         self.__coordenadas_ind = coordenadas_ind
+    
     @contribucion_ind.setter
     def contribucion_ind(self, contribucion_ind):
+        """Permite actualizar la contribución de los individuos a los componentes principales.
+        Args:
+            contribucion_ind (pd.DataFrame): Nueva contribución de los individuos.
+        """
         self.__contribucion_ind = contribucion_ind
+        
     @cos2_ind.setter
     def cos2_ind(self, cos2_ind):
+        """Permite actualizar el coseno del ángulo entre los individuos y los componentes principales.
+        Args:
+            cos2_ind (pd.DataFrame): Nuevo coseno del ángulo.
+        """
         self.__cos2_ind = cos2_ind
 
 
