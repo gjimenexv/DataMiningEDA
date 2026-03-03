@@ -442,5 +442,70 @@ class AnalisisDatosExploratorio():
         for j in range(1 + 1, len(axes)):
             fig.delaxes(axes[j])
         plt.tight_layout()
-        plt. show()
-    
+        plt.show()
+
+#NoSupervisado
+
+class NoSupervisado(AnalisisDatosExploratorio):
+    """Clase para realizar análisis de datos no supervisados, como clustering y reducción de dimensionalidad."""
+
+    def __init__(self, df):
+        """Inicializa la clase con un DataFrame.
+
+        Args:
+            df: DataFrame de pandas con los datos a analizar.
+        """
+        self.__df = df
+
+class Clustering(NoSupervisado):
+    """Clase para realizar clustering en un DataFrame utilizando el algoritmo K-means."""
+
+    def __init__(self, df, n_clusters):
+        """Inicializa la clase con un DataFrame y el número de clusters.
+
+        Args:
+            df: DataFrame de pandas con los datos a analizar.
+            n_clusters: Número de clusters a formar.
+        """
+        super().__init__(df)
+        self.n_clusters = n_clusters
+
+
+#Supervisado
+class Supervisado(AnalisisDatosExploratorio):
+    """Clase para realizar análisis de datos supervisados, como clasificación y regresión."""
+
+    def __init__(self, df):
+        """Inicializa la clase con un DataFrame.
+
+        Args:
+            df: DataFrame de pandas con los datos a analizar.
+        """
+        super().__init__(df)
+        self.__df = df
+        
+class Clasificacion(Supervisado):
+    """Clase para realizar clasificación en un DataFrame utilizando algoritmos de machine learning."""
+
+    def __init__(self, df, target):
+        """Inicializa la clase con un DataFrame y la variable objetivo.
+
+        Args:
+            df: DataFrame de pandas con los datos a analizar.
+            target: Nombre de la columna que contiene la variable objetivo (clase).
+        """
+        super().__init__(df)
+        self.target = target
+        
+class Regresion(Supervisado):
+    """Clase para realizar regresión en un DataFrame utilizando algoritmos de machine learning."""
+
+    def __init__(self, df, target):
+        """Inicializa la clase con un DataFrame y la variable objetivo.
+
+        Args:
+            df: DataFrame de pandas con los datos a analizar.
+            target: Nombre de la columna que contiene la variable objetivo (valor a predecir).
+        """
+        super().__init__(df)
+        self.target = target
