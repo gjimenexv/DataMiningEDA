@@ -1,17 +1,115 @@
-# pckEDA — Adding a New Algorithm
+# pckEDA — Minería de Datos en Python
 
-## Package Structure
+Un paquete modular para análisis exploratorio, reducción de dimensionalidad y clustering, diseñado para ser intuitivo tanto para usuarios técnicos como no técnicos.
+
+---
+
+## ¿Qué incluye?
+
+| Clase | Tipo | ¿Qué hace? | Documentación |
+|-------|------|------------|---------------|
+| `AnalisisDatosExploratorio` | Base | Carga, limpia, transforma y visualiza datos | [EDA.md](EDA.md) |
+| `ACP` | No supervisado | Reducción de dimensionalidad (PCA) | [ACP.md](no_supervisado/ACP.md) |
+| `HAC` | No supervisado | Clustering jerárquico aglomerativo | [HAC.md](no_supervisado/HAC.md) |
+| `Clustering` | No supervisado | K-Means *(en desarrollo)* | [Clustering.md](no_supervisado/Clustering.md) |
+| `Clasificacion` | Supervisado | Clasificación *(en desarrollo)* | [Clasificacion.md](supervisado/Clasificacion.md) |
+| `Regresion` | Supervisado | Regresión *(en desarrollo)* | [Regresion.md](supervisado/Regresion.md) |
+
+---
+
+## Instalación
+
+El paquete se usa directamente desde el directorio del proyecto. Agrega la ruta al path de Python antes de importar:
+
+```python
+import sys
+sys.path.insert(0, '..')   # ajusta según la ubicación de tu notebook
+import pckEDA as mf
+```
+
+### Dependencias
+
+```
+pandas
+numpy
+matplotlib
+seaborn
+scipy
+scikit-learn
+prince
+```
+
+---
+
+## Inicio rápido
+
+### 1. Análisis exploratorio
+
+```python
+import pckEDA as mf
+
+eda = mf.AnalisisDatosExploratorio("hotel_bookings.csv", 1)
+eda.eliminarNulos()
+eda.eliminarDuplicados()
+eda.codificarCategorica("hotel")
+eda.graficarHeatmap("Hotel Bookings")
+```
+
+### 2. Análisis de Componentes Principales (ACP)
+
+```python
+import pandas as pd
+import pckEDA as mf
+
+datos = pd.read_csv("hotel_bookings.csv", index_col=0)
+datos = datos.select_dtypes(include="number").dropna()
+
+acp = mf.ACP(datos, n_componentes=5)
+print(acp.var_explicada)      # % de varianza explicada por cada componente
+acp.plot_circulo()             # círculo de correlación
+acp.plot_plano_principal()     # posición de las observaciones
+```
+
+### 3. Clustering Jerárquico (HAC)
+
+```python
+import pandas as pd
+import pckEDA as mf
+
+datos = pd.read_csv("hotel_bookings.csv", index_col=0)
+datos = datos.select_dtypes(include="number").dropna()
+
+hac = mf.HAC(datos, n_clusters=4, metodo='ward')
+print(f"Calidad del clustering: {hac.cophenet_corr:.4f}")
+hac.plot_dendrograma()         # árbol jerárquico
+hac.plot_mapa_calor()          # perfil de cada cluster
+hac.plot_distribucion()        # tamaño de cada cluster
+print(hac.resumen)             # media de variables por cluster
+```
+
+---
+
+## Estructura del paquete
 
 ```
 pckEDA/
+├── README.md                  ← este archivo
+├── CONTRIBUTING.md            ← guía para añadir nuevos algoritmos
+├── EDA.md                     ← documentación de AnalisisDatosExploratorio
 ├── __init__.py
 ├── eda.py
 ├── no_supervisado/
+│   ├── ACP.md
+│   ├── HAC.md
+│   ├── Clustering.md
 │   ├── __init__.py
 │   ├── base.py
-│   ├── clustering.py
-│   └── acp.py
+│   ├── acp.py
+│   ├── hac.py
+│   └── clustering.py
 └── supervisado/
+    ├── Clasificacion.md
+    ├── Regresion.md
     ├── __init__.py
     ├── base.py
     ├── clasificacion.py
@@ -20,62 +118,13 @@ pckEDA/
 
 ---
 
-## Two Steps to Add a New Algorithm
+## Estándares del paquete
 
-### Step 1 — Create the file
+El código sigue los siguientes PEPs para garantizar mantenibilidad y legibilidad:
 
-Create a new `.py` file inside the correct subfolder (`no_supervisado/` or `supervisado/`),
-inherit from the corresponding base class, and implement your algorithm.
+- [PEP 8](https://peps.python.org/pep-0008/) — Guía de estilo
+- [PEP 20](https://peps.python.org/pep-0020/) — El Zen de Python
+- [PEP 257](https://peps.python.org/pep-0257/) — Convenciones de docstrings
+- [PEP 328](https://peps.python.org/pep-0328/) — Imports relativos
 
-**Example:** adding `KMeans` under `no_supervisado/`
-
-```python
-# no_supervisado/kmeans.py
-
-from .base import NoSupervisado
-
-class KMeans(NoSupervisado):
-    def __init__(self, df, n_clusters):
-        super().__init__(df)
-        self.n_clusters = n_clusters
-```
-
----
-
-### Step 2 — Register it in `__init__.py`
-
-Add the import to **both** the subpackage `__init__.py` and the root `__init__.py`.
-
-**`no_supervisado/__init__.py`**
-```python
-from .base import NoSupervisado
-from .clustering import Clustering
-from .acp import ACP
-from .kmeans import KMeans          # ← add this line
-
-__all__ = ["NoSupervisado", "Clustering", "ACP", "KMeans"]   # ← add to __all__
-```
-
-**`pckEDA/__init__.py`**
-```python
-from .no_supervisado import NoSupervisado, Clustering, ACP, KMeans   # ← add here
-
-__all__ = [
-    ...
-    "KMeans",    # ← add here
-]
-```
-
-That's it. The new algorithm is immediately available as `mf.KMeans(...)`.
-
-## Mandate
-
-This package tries to follow PEPs to guarantee maintainability and standardization:
-
-[PEP 20 – The Zen of Python](https://peps.python.org/pep-0020/)
-
-[PEP 8 – Style Guide for Python Code](https://peps.python.org/pep-0008/)
-
-[PEP 257 – Docstring Conventions](https://peps.python.org/pep-0257/)
-
-[PEP 328 – Imports: Multi-Line and Absolute/Relative](https://peps.python.org/pep-0328/)
+¿Quieres añadir un nuevo algoritmo? Consulta [CONTRIBUTING.md](CONTRIBUTING.md).
