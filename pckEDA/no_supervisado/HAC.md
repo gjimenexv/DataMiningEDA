@@ -15,26 +15,48 @@ El **HAC** agrupa observaciones similares sin que tú le indiques de antemano a 
 - Cuando necesitas un resultado reproducible (a diferencia de K-Means, HAC es determinista).
 - Con datasets de **tamaño mediano** (hasta ~10,000 filas). Con datasets muy grandes puede ser lento.
 
-> **Requisito:** Todos los datos deben ser **numéricos**. Los datos se estandarizan automáticamente.
+> **Requisito:** Las columnas usadas en el ajuste deben ser **numéricas**. Usa `codificarCategorica()` y `analisisNumerico()` antes de llamar a `ajustar()`. Los datos se estandarizan automáticamente.
 
 ---
+
+## Flujo de uso
+
+`HAC` hereda de `NoSupervisado → AnalisisDatosExploratorio`, por lo que los métodos
+de carga y limpieza del EDA están disponibles directamente sobre el objeto.
+
+```
+mf.HAC(path, num)           # 1. Cargar datos desde CSV
+    ↓ métodos EDA heredados  # 2. Limpiar y preparar
+hac.ajustar()               # 3. Entrenar el modelo
+hac.plot_*()                # 4. Visualizar resultados
+```
 
 ## Creación del modelo
 
 ```python
 import pckEDA as mf
 
-hac = mf.HAC(datos, n_clusters=4, metodo='ward', metrica='euclidean')
+hac = mf.HAC('hotel_bookings.csv', 1, n_clusters=4, metodo='ward')
 ```
 
 ### Parámetros del constructor
 
 | Parámetro | Tipo | Valor por defecto | Descripción sencilla |
 |-----------|------|-------------------|----------------------|
-| `datos` | `DataFrame` | — | Tabla de datos numéricos ya limpios |
+| `path` | `str` | — | Ruta al archivo CSV |
+| `num` | `int` | — | Formato del CSV: **1** = coma con índice, **2** = punto y coma sin índice |
 | `n_clusters` | `int` | `3` | ¿En cuántos grupos quieres dividir los datos? |
 | `metodo` | `str` | `'ward'` | Criterio para decidir qué grupos fusionar (ver tabla abajo) |
 | `metrica` | `str` | `'euclidean'` | Cómo medir la "distancia" entre observaciones |
+
+### Método `ajustar()`
+
+Entrena el modelo HAC sobre `self.df` (el estado actual del DataFrame tras la limpieza).
+Debe llamarse **después** de codificar categóricas, eliminar nulos y conservar solo columnas numéricas.
+
+```python
+hac.ajustar()
+```
 
 #### Métodos de enlace (`metodo`)
 
@@ -130,21 +152,26 @@ Diagrama de dispersión entre dos variables, coloreando cada punto según su clu
 ## Ejemplo completo
 
 ```python
-import pandas as pd
 import matplotlib.pyplot as plt
 import pckEDA as mf
 
-# Cargar y preparar datos
-datos = pd.read_csv("hotel_bookings.csv", index_col=0)
-datos = datos.select_dtypes(include="number").dropna()
+# 1. Cargar datos desde CSV
+hac = mf.HAC('hotel_bookings.csv', 1, n_clusters=4, metodo='ward')
 
-# Crear modelo con 4 clusters usando Ward
-hac = mf.HAC(datos, n_clusters=4, metodo='ward')
+# 2. Preparar con métodos heredados del EDA
+hac.codificarCategorica('hotel')
+hac.codificarCategorica('arrival_date_month')
+hac.codificarCategorica('deposit_type', mapeo={'No Deposit': 0, 'Non Refund': 1, 'Refundable': 2})
+hac.codificarCategorica('customer_type')
+hac.codificarCategorica('reservation_status')
+hac.eliminarNulos()
+hac.analisisNumerico()   # conserva solo columnas numéricas
 
-# Calidad del clustering
+# 3. Ajustar el modelo
+hac.ajustar()
 print(f"Correlación cofenética: {hac.cophenet_corr:.4f}")
 
-# Visualizaciones
+# 4. Visualizaciones
 plt.figure(figsize=(14, 6))
 hac.plot_dendrograma(max_hojas=40)
 
@@ -172,7 +199,15 @@ metodos = ['ward', 'complete', 'average', 'single']
 fig, axes = plt.subplots(2, 2, figsize=(16, 10))
 
 for ax, metodo in zip(axes.ravel(), metodos):
-    h = mf.HAC(datos, n_clusters=4, metodo=metodo)
+    h = mf.HAC('hotel_bookings.csv', 1, n_clusters=4, metodo=metodo)
+    h.codificarCategorica('hotel')
+    h.codificarCategorica('arrival_date_month')
+    h.codificarCategorica('deposit_type', mapeo={'No Deposit': 0, 'Non Refund': 1, 'Refundable': 2})
+    h.codificarCategorica('customer_type')
+    h.codificarCategorica('reservation_status')
+    h.eliminarNulos()
+    h.analisisNumerico()
+    h.ajustar()
     plt.sca(ax)
     h.plot_dendrograma(
         max_hojas=25,

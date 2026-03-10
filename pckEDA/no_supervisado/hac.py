@@ -5,62 +5,66 @@ from sklearn.preprocessing import StandardScaler
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster, cophenet
 from scipy.spatial.distance import pdist
 
+from pckEDA.eda import AnalisisDatosExploratorio
 from .base import NoSupervisado
 
 
 class HAC(NoSupervisado):
     """Clustering Jerárquico Aglomerativo (HAC) como algoritmo de aprendizaje no supervisado.
 
-    Hereda de NoSupervisado y utiliza scipy para construir la jerarquía de clusters,
-    calculando etiquetas de cluster, correlación cofenética y perfiles estadísticos
-    por grupo. Los datos se escalan automáticamente con StandardScaler antes del ajuste.
+    Hereda de NoSupervisado → AnalisisDatosExploratorio, por lo que dispone de todos los
+    métodos de carga, limpieza y transformación del EDA antes de ajustar el modelo.
+
+    Flujo de uso:
+        1. Crear la instancia con la ruta del CSV.
+        2. Aplicar los métodos heredados del EDA (codificarCategorica, eliminarNulos, etc.).
+        3. Llamar a ajustar() para entrenar el modelo HAC sobre los datos limpios.
+        4. Usar los métodos de visualización para explorar los resultados.
     """
 
-    def __init__(self, datos, n_clusters=3, metodo='ward', metrica='euclidean'):
-        """Inicializa el modelo HAC ajustándolo sobre los datos proporcionados.
+    def __init__(self, path, num, n_clusters=3, metodo='ward', metrica='euclidean'):
+        """Carga los datos desde un CSV y configura los parámetros del modelo HAC.
 
-        Los datos se estandarizan internamente antes de calcular la matriz de enlace.
+        El modelo no se ajusta en este paso — primero aplica los métodos heredados del EDA
+        para limpiar y preparar los datos, luego llama a ajustar().
 
         Args:
-            datos: DataFrame de pandas con los datos numéricos a analizar.
+            path: Ruta del archivo CSV a cargar.
+            num: Modo de lectura del CSV (1: separador coma con índice, 2: separador punto y coma).
             n_clusters: Número de clusters a formar al cortar el dendrograma. Por defecto 3.
             metodo: Método de enlace para la jerarquía ('ward', 'complete', 'average', 'single').
                     Por defecto 'ward'.
             metrica: Métrica de distancia a utilizar (e.g. 'euclidean', 'cosine').
                      Ignorada cuando metodo='ward' (usa siempre distancia euclídea). Por defecto 'euclidean'.
         """
-        super().__init__(datos)
-        self.__datos = datos
+        AnalisisDatosExploratorio.__init__(self, path, num)
         self.__n_clusters = n_clusters
         self.__metodo = metodo
         self.__metrica = metrica
+        self.__datos_escalados = None
+        self.__enlace = None
+        self.__etiquetas = None
+        self.__cophenet_corr = None
+        self.__resumen = None
 
+    def ajustar(self):
+        """Ajusta el modelo HAC sobre los datos actuales (self.df).
+
+        Debe llamarse después de aplicar los métodos de limpieza y transformación del EDA.
+        Estandariza los datos automáticamente con StandardScaler antes de calcular la jerarquía.
+        """
+        datos = self.df
         escalador = StandardScaler()
         self.__datos_escalados = escalador.fit_transform(datos)
-
-        self.__enlace = linkage(self.__datos_escalados, method=metodo, metric=metrica)
-        self.__etiquetas = fcluster(self.__enlace, n_clusters, criterion='maxclust')
-
+        self.__enlace = linkage(self.__datos_escalados, method=self.__metodo, metric=self.__metrica)
+        self.__etiquetas = fcluster(self.__enlace, self.__n_clusters, criterion='maxclust')
         distancias = pdist(self.__datos_escalados)
         self.__cophenet_corr, _ = cophenet(self.__enlace, distancias)
-
         df_resumen = datos.copy()
         df_resumen['cluster'] = self.__etiquetas
         self.__resumen = df_resumen.groupby('cluster').mean()
 
     # ─── Properties ────────────────────────────────────────────────────────────
-
-    @property
-    def datos(self):
-        """Devuelve el DataFrame original utilizado para el análisis."""
-        return self.__datos
-
-    @datos.setter
-    def datos(self, datos):
-        """Args:
-            datos: Nuevo DataFrame a asignar.
-        """
-        self.__datos = datos
 
     @property
     def datos_escalados(self):
@@ -251,8 +255,8 @@ class HAC(NoSupervisado):
             titulo = f'{col_x} vs {col_y} por Cluster'
         cmap = plt.cm.get_cmap('tab10', self.__n_clusters)
         scatter = plt.scatter(
-            self.__datos[col_x],
-            self.__datos[col_y],
+            self.df[col_x],
+            self.df[col_y],
             c=self.__etiquetas,
             cmap=cmap,
             alpha=0.6,
