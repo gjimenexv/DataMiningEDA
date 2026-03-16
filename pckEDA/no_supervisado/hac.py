@@ -1,15 +1,14 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster, cophenet
 from scipy.spatial.distance import pdist
 
 from pckEDA.eda import AnalisisDatosExploratorio
-from .base import NoSupervisado
+from .clustering import Clustering
 
 
-class HAC(NoSupervisado):
+class HAC(Clustering):
     """Clustering Jerárquico Aglomerativo (HAC) como algoritmo de aprendizaje no supervisado.
 
     Hereda de NoSupervisado → AnalisisDatosExploratorio, por lo que dispone de todos los
@@ -170,55 +169,53 @@ class HAC(NoSupervisado):
     def plot_dendrograma(self, max_hojas=30, color_umbral=None, titulo='Dendrograma HAC'):
         """Genera el dendrograma de la jerarquía de clusters.
 
-        Muestra la estructura de fusiones del algoritmo HAC, truncado al número
-        de hojas especificado para mayor legibilidad con conjuntos grandes.
+        Para datasets pequeños (n ≤ max_hojas) muestra el árbol completo con los
+        nombres del índice como etiquetas. Para datasets grandes trunca al número
+        de hojas especificado para mayor legibilidad.
 
         Args:
-            max_hojas: Número máximo de hojas (observaciones o grupos) a mostrar.
-                       Por defecto 30.
+            max_hojas: Número máximo de hojas a mostrar. Si el dataset tiene menos
+                       o igual observaciones que este valor, se muestran todas con
+                       sus etiquetas originales. Por defecto 30.
             color_umbral: Umbral de distancia para colorear las ramas. Si es None,
                           se utiliza el valor predeterminado de scipy (70% de la
                           distancia máxima). Por defecto None.
             titulo: Título del gráfico. Por defecto 'Dendrograma HAC'.
         """
         plt.style.use('seaborn-v0_8-bright')
-        kwargs = dict(
-            Z=self.__enlace,
-            truncate_mode='lastp',
-            p=max_hojas,
-            leaf_rotation=90,
-            leaf_font_size=10,
-            show_contracted=True,
-        )
+        n = len(self.df)
+        if n <= max_hojas:
+            kwargs = dict(
+                Z=self.__enlace,
+                labels=self.df.index.tolist(),
+                leaf_rotation=45,
+                leaf_font_size=11,
+            )
+        else:
+            kwargs = dict(
+                Z=self.__enlace,
+                truncate_mode='lastp',
+                p=max_hojas,
+                leaf_rotation=90,
+                leaf_font_size=10,
+                show_contracted=True,
+            )
         if color_umbral is not None:
             kwargs['color_threshold'] = color_umbral
         dendrogram(**kwargs)
         plt.title(titulo)
-        plt.xlabel('Observaciones (n en paréntesis)')
+        plt.xlabel('Observaciones (n en paréntesis)' if n > max_hojas else 'Observación')
         plt.ylabel('Distancia de fusión')
 
     def plot_mapa_calor(self, titulo='Perfil de Clusters'):
         """Genera un mapa de calor con la media de cada variable por cluster.
 
-        Permite identificar visualmente el perfil característico de cada cluster
-        (e.g. qué clusters tienen mayor tarifa media, más cancelaciones, etc.).
+        Delega en el método heredado graficarHeatmapClusters() de AnalisisDatosExploratorio.
 
         Args:
             titulo: Título del gráfico. Por defecto 'Perfil de Clusters'.
         """
-        plt.style.use('seaborn-v0_8-bright')
-        resumen_norm = (self.__resumen - self.__resumen.mean()) / self.__resumen.std()
-        sns.heatmap(
-            resumen_norm,
-            annot=True,
-            fmt='.2f',
-            cmap='RdYlGn',
-            linewidths=0.5,
-            cbar_kws={'label': 'Desviaciones estándar respecto a la media global'},
-        )
-        plt.title(titulo)
-        plt.xlabel('Variable')
-        plt.ylabel('Cluster')
+        self.graficarHeatmapClusters(self.__resumen, titulo)
 
     def plot_distribucion(self, titulo='Distribución de Clusters'):
         """Genera un gráfico de barras con el número de observaciones por cluster.

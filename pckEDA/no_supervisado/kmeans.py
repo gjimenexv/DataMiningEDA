@@ -1,16 +1,14 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
-import numpy as np
 from sklearn.cluster import KMeans as KMeans_sklearn
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 
 from pckEDA.eda import AnalisisDatosExploratorio
-from .base import NoSupervisado
+from .clustering import Clustering
 
 
-class KMeans(NoSupervisado):
+class KMeans(Clustering):
     """Clustering por K-Means como algoritmo de aprendizaje no supervisado.
 
     Hereda de NoSupervisado → AnalisisDatosExploratorio, por lo que dispone de todos los
@@ -273,26 +271,14 @@ class KMeans(NoSupervisado):
         plt.legend()
 
     def plot_mapa_calor(self, titulo='Perfil de Clusters — K-Means'):
-        """Genera un mapa de calor con la media normalizada de cada variable por cluster.
+        """Genera un mapa de calor con la media de cada variable por cluster.
 
-        Permite identificar el perfil característico de cada cluster.
+        Delega en el método heredado graficarHeatmapClusters() de AnalisisDatosExploratorio.
 
         Args:
             titulo: Título del gráfico. Por defecto 'Perfil de Clusters — K-Means'.
         """
-        plt.style.use('seaborn-v0_8-bright')
-        resumen_norm = (self.__resumen - self.__resumen.mean()) / self.__resumen.std()
-        sns.heatmap(
-            resumen_norm,
-            annot=True,
-            fmt='.2f',
-            cmap='RdYlGn',
-            linewidths=0.5,
-            cbar_kws={'label': 'Desviaciones estándar respecto a la media global'},
-        )
-        plt.title(titulo)
-        plt.xlabel('Variable')
-        plt.ylabel('Cluster')
+        self.graficarHeatmapClusters(self.__resumen, titulo)
 
     def plot_distribucion(self, titulo='Distribución de Clusters — K-Means'):
         """Genera un gráfico de barras con el número de observaciones por cluster.
