@@ -49,6 +49,8 @@ class AnalisisDatosExploratorio():
             num: Modo de lectura.
                 1 - Separador coma, decimal punto, primera columna como índice.
                 2 - Separador punto y coma, decimal punto, sin columna índice.
+                3 - Separador punto y coma, decimal coma, primera columna como índice
+                    (formato español estándar).
 
         Returns:
             pd.DataFrame: DataFrame con los datos cargados.
@@ -57,6 +59,8 @@ class AnalisisDatosExploratorio():
             return pd.read_csv(path, sep=",", decimal=".", index_col=0)
         if num == 2:
             return pd.read_csv(path, sep=";", decimal=".")
+        if num == 3:
+            return pd.read_csv(path, sep=";", decimal=",", index_col=0)
 
     def analisisNumerico(self):
         """Filtra el DataFrame para conservar únicamente las columnas con datos numéricos."""

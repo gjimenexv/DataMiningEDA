@@ -27,7 +27,15 @@ eda = mf.AnalisisDatosExploratorio("mi_archivo.csv", 1)
 | Parámetro | Tipo | Descripción sencilla |
 |-----------|------|----------------------|
 | `path` | `str` | Ruta al archivo CSV que quieres analizar |
-| `num` | `int` | Formato del CSV: **1** = separado por comas con índice, **2** = separado por punto y coma sin índice |
+| `num` | `int` | Formato del CSV (ver tabla abajo) |
+
+#### Modos de carga (`num`)
+
+| Valor | Separador | Decimal | Índice | Uso típico |
+|-------|-----------|---------|--------|------------|
+| `1` | Coma `,` | Punto `.` | Primera columna | CSV estándar exportado desde Excel en inglés |
+| `2` | Punto y coma `;` | Punto `.` | Sin índice | CSV europeo sin columna de ID |
+| `3` | Punto y coma `;` | Coma `,` | Primera columna | **Formato español estándar** (Excel en español) |
 
 > **¿Cuál usar?** Si abres el CSV en Excel y las columnas se ven bien separadas con comas, usa `1`. Si el archivo usa punto y coma como separador, usa `2`.
 
