@@ -10,9 +10,35 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 Planned additions:
-- `Clustering` — K-Means implementation
 - `Clasificacion` — supervised classification algorithms
 - `Regresion` — supervised regression algorithms
+
+---
+
+## [0.5.0] — 2026-03-16
+
+### Added
+- `KMeans` class (`pckEDA/no_supervisado/kmeans.py`) implementing K-Means clustering
+  with `plot_codo`, `plot_silhouette`, `plot_mapa_calor`, `plot_distribucion`,
+  `plot_dispersion`; exposes `inercia` and `silhouette` quality metrics
+- `TSNE` class (`pckEDA/no_supervisado/tsne.py`) implementing t-SNE dimensionality
+  reduction with `plot_proyeccion` (supports external cluster labels for coloring)
+  and `plot_perplejidad` for hyperparameter calibration
+- `UMAP` class (`pckEDA/no_supervisado/umap.py`) implementing UMAP dimensionality
+  reduction with `plot_proyeccion`, `plot_vecinos`, and `transformar()` for projecting
+  new data; requires `umap-learn` (available in Anaconda)
+- Individual Jupyter notebooks: `KMeans_HotelBookings.ipynb`, `TSNE_HotelBookings.ipynb`,
+  `UMAP_HotelBookings.ipynb` in `Semana 9/`
+- Comparison notebook `Semana 9/Comparacion_NoSupervisado.ipynb` — side-by-side
+  analysis of all five unsupervised algorithms with cross-visualization
+  (projections colored by cluster labels)
+- Documentation files: `KMeans.md`, `TSNE.md`, `UMAP.md`
+
+### Changed
+- `pckEDA/__init__.py` and `pckEDA/no_supervisado/__init__.py` updated to export
+  `KMeans`, `TSNE`, `UMAP`
+- `pckEDA/README.md` updated with new class index, quick-start examples, and
+  updated package tree
 
 ---
 

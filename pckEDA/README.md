@@ -9,9 +9,12 @@ Un paquete modular para análisis exploratorio, reducción de dimensionalidad y 
 | Clase | Tipo | ¿Qué hace? | Documentación |
 |-------|------|------------|---------------|
 | `AnalisisDatosExploratorio` | Base | Carga, limpia, transforma y visualiza datos | [EDA.md](EDA.md) |
-| `ACP` | No supervisado | Reducción de dimensionalidad (PCA) | [ACP.md](no_supervisado/ACP.md) |
-| `HAC` | No supervisado | Clustering jerárquico aglomerativo | [HAC.md](no_supervisado/HAC.md) |
-| `Clustering` | No supervisado | K-Means *(en desarrollo)* | [Clustering.md](no_supervisado/Clustering.md) |
+| `ACP` | Reducción dimensional | PCA — varianza máxima (lineal) | [ACP.md](no_supervisado/ACP.md) |
+| `TSNE` | Reducción dimensional | t-SNE — estructura local (no lineal) | [TSNE.md](no_supervisado/TSNE.md) |
+| `UMAP` | Reducción dimensional | UMAP — estructura local y global | [UMAP.md](no_supervisado/UMAP.md) |
+| `KMeans` | Clustering | K-Means — clusters compactos, esféricos | [KMeans.md](no_supervisado/KMeans.md) |
+| `HAC` | Clustering | Clustering jerárquico aglomerativo | [HAC.md](no_supervisado/HAC.md) |
+| `Clustering` | No supervisado | Placeholder *(ver KMeans)* | [Clustering.md](no_supervisado/Clustering.md) |
 | `Clasificacion` | Supervisado | Clasificación *(en desarrollo)* | [Clasificacion.md](supervisado/Clasificacion.md) |
 | `Regresion` | Supervisado | Regresión *(en desarrollo)* | [Regresion.md](supervisado/Regresion.md) |
 
@@ -37,6 +40,7 @@ seaborn
 scipy
 scikit-learn
 prince
+umap-learn      # disponible en Anaconda
 ```
 
 ---
@@ -73,18 +77,44 @@ acp.plot_plano_principal()     # posición de las observaciones
 ### 3. Clustering Jerárquico (HAC)
 
 ```python
-import pandas as pd
 import pckEDA as mf
 
-datos = pd.read_csv("hotel_bookings.csv", index_col=0)
-datos = datos.select_dtypes(include="number").dropna()
-
-hac = mf.HAC(datos, n_clusters=4, metodo='ward')
+hac = mf.HAC("hotel_bookings.csv", 1, n_clusters=4, metodo='ward')
+hac.codificarCategorica("hotel")
+hac.eliminarNulos()
+hac.analisisNumerico()
+hac.ajustar()
 print(f"Calidad del clustering: {hac.cophenet_corr:.4f}")
-hac.plot_dendrograma()         # árbol jerárquico
-hac.plot_mapa_calor()          # perfil de cada cluster
-hac.plot_distribucion()        # tamaño de cada cluster
-print(hac.resumen)             # media de variables por cluster
+hac.plot_dendrograma()
+hac.plot_mapa_calor()
+```
+
+### 4. K-Means
+
+```python
+import pckEDA as mf
+
+km = mf.KMeans("hotel_bookings.csv", 1, n_clusters=4)
+km.codificarCategorica("hotel")
+km.eliminarNulos()
+km.analisisNumerico()
+km.ajustar()
+print(f"Silhouette: {km.silhouette:.4f}")
+km.plot_codo()
+km.plot_mapa_calor()
+```
+
+### 5. t-SNE / UMAP
+
+```python
+import pckEDA as mf
+
+tsne = mf.TSNE("hotel_bookings.csv", 1, perplejidad=30)
+tsne.codificarCategorica("hotel")
+tsne.eliminarNulos()
+tsne.analisisNumerico()
+tsne.ajustar()
+tsne.plot_proyeccion(etiquetas=km.etiquetas)   # colorear con clusters de K-Means
 ```
 
 ---
@@ -101,11 +131,17 @@ pckEDA/
 ├── no_supervisado/
 │   ├── ACP.md
 │   ├── HAC.md
+│   ├── KMeans.md
+│   ├── TSNE.md
+│   ├── UMAP.md
 │   ├── Clustering.md
 │   ├── __init__.py
 │   ├── base.py
 │   ├── acp.py
 │   ├── hac.py
+│   ├── kmeans.py
+│   ├── tsne.py
+│   ├── umap.py
 │   └── clustering.py
 └── supervisado/
     ├── Clasificacion.md
