@@ -271,14 +271,45 @@ class KMeans(Clustering):
         plt.legend()
 
     def plot_mapa_calor(self, titulo='Perfil de Clusters — K-Means'):
-        """Genera un mapa de calor con la media de cada variable por cluster.
+        """Genera un mapa de calor con la media normalizada de cada variable por cluster.
 
-        Delega en el método heredado graficarHeatmapClusters() de AnalisisDatosExploratorio.
+        Delega en el método heredado graficarHeatmapClusters() de Clustering.
 
         Args:
             titulo: Título del gráfico. Por defecto 'Perfil de Clusters — K-Means'.
         """
         self.graficarHeatmapClusters(self.__resumen, titulo)
+
+    def plot_barras(self, titulo='Perfiles de Clusters — K-Means',
+                    escala=False, clusters=None, variables=None):
+        """Genera barras horizontales con el perfil medio de cada cluster.
+
+        Cada subgráfico corresponde a un cluster y muestra el valor medio de
+        cada variable. Permite identificar rápidamente qué variables caracterizan
+        a cada grupo.
+
+        Args:
+            titulo: Título del gráfico. Por defecto 'Perfiles de Clusters — K-Means'.
+            escala: Si True, normaliza cada variable por su máximo para comparar
+                    variables con distintas escalas. Por defecto False.
+            clusters: Lista de índices de posición (0-based) de los clusters a
+                      mostrar. Si None, muestra todos. Por defecto None.
+            variables: Lista de nombres de columnas a incluir. Si None, incluye
+                       todas. Por defecto None.
+        """
+        self.graficarBarrasClusters(self.__resumen, titulo=titulo, escala=escala,
+                                    clusters=clusters, variables=variables)
+
+    def plot_radar(self, titulo='Radar de Clusters — K-Means'):
+        """Genera un gráfico radar con los perfiles normalizados de cada cluster.
+
+        Normaliza cada variable al rango 0-100% para que las distintas escalas
+        no distorsionen la forma. Cada cluster se muestra como un polígono relleno.
+
+        Args:
+            titulo: Título del gráfico. Por defecto 'Radar de Clusters — K-Means'.
+        """
+        self.graficarRadarClusters(self.__resumen, titulo)
 
     def plot_distribucion(self, titulo='Distribución de Clusters — K-Means'):
         """Genera un gráfico de barras con el número de observaciones por cluster.
