@@ -1,7 +1,7 @@
 # pckEDA — Public API (PEP 328: relative imports)
 from .eda import AnalisisDatosExploratorio
 from .no_supervisado import NoSupervisado, Clustering, ACP, HAC, KMeans, TSNE, UMAP
-from .supervisado import Supervisado, Clasificacion, Regresion
+from .supervisado import Supervisado, Clasificacion, Regresion, KNN
 
 __all__ = [
     "AnalisisDatosExploratorio",
@@ -15,4 +15,5 @@ __all__ = [
     "Supervisado",
     "Clasificacion",
     "Regresion",
+    "KNN",
 ]
