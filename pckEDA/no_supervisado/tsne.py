@@ -68,7 +68,7 @@ class TSNE(NoSupervisado):
         self.__modelo = TSNE_sklearn(
             n_components=self.__n_componentes,
             perplexity=self.__perplejidad,
-            n_iter=self.__iteraciones,
+            max_iter=self.__iteraciones,
             learning_rate=self.__tasa_aprendizaje,
             random_state=self.__random_state,
         )
@@ -206,7 +206,7 @@ class TSNE(NoSupervisado):
             modelo = TSNE_sklearn(
                 n_components=2,
                 perplexity=perp,
-                n_iter=self.__iteraciones,
+                max_iter=self.__iteraciones,
                 learning_rate=self.__tasa_aprendizaje,
                 random_state=self.__random_state,
             )

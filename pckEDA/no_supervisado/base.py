@@ -14,4 +14,4 @@ class NoSupervisado(AnalisisDatosExploratorio):
         Args:
             df: DataFrame de pandas con los datos a analizar.
         """
-        self._df = df
+        self.df = df

@@ -10,8 +10,41 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 Planned additions:
-- `Clasificacion` — supervised classification algorithms
-- `Regresion` — supervised regression algorithms
+- Additional `Clasificacion` algorithms (Decision Tree, Random Forest, …)
+- Additional `Regresion` algorithms (Linear, Logistic, …)
+
+---
+
+## [0.6.0] — 2026-03-30
+
+### Added
+- `KNN` class (`pckEDA/supervisado/knn.py`) implementing K-Nearest Neighbors
+  classification with `ajustar()`, `predecir()`, `plot_matriz_confusion`,
+  `plot_fronteras_decision`, `plot_curva_k`, and `plot_metricas_por_k`;
+  supports `StandardScaler` and `MinMaxScaler` preprocessing
+- `Clasificacion` and `Regresion` base classes now functional in
+  `pckEDA/supervisado/`
+- `notebooks/KNN_Potabilidad.ipynb` — KNN front-end notebook using the
+  water potability dataset
+
+### Changed
+- **Project restructuring for consistency:**
+  - All datasets consolidated into `datasets/` (previously scattered across
+    `Semana 8/` and project root)
+  - All notebooks consolidated into `notebooks/` (previously split across
+    `Semana 8/`, `Semana 9/`, and project root)
+  - `ModuloACP.py` moved to project root for import accessibility
+  - All notebook paths updated to use `../datasets/` and
+    `sys.path.insert(0, '..')`
+- Tracked `*-checkpoint.*` files removed and pattern added to `.gitignore`
+
+### Fixed
+- `NoSupervisado.__init__` now initializes the parent `__df` attribute via
+  the inherited property setter (`self.df = df`), enabling EDA methods
+  (`codificarCategorica`, `eliminarNulos`, etc.) on `ACP` and any subclass
+  constructed with a DataFrame
+- `TSNE.ajustar()` updated from deprecated `n_iter` to `max_iter` for
+  compatibility with scikit-learn ≥ 1.6
 
 ---
 
