@@ -306,8 +306,8 @@ class KNN(Clasificacion):
             test_size: Proporción del conjunto de prueba. Por defecto 0.2.
             random_state: Semilla para reproducibilidad. Por defecto 42.
         """
-        self.__X = self._df.drop(columns=[self.target])
-        self.__y = self._df[self.target]
+        self.__X = self.df.drop(columns=[self.target])
+        self.__y = self.df[self.target]
         self.__nombres_clases = sorted(self.__y.unique().tolist())
 
         self.__X_train, self.__X_test, self.__y_train, self.__y_test = \
@@ -504,7 +504,7 @@ class KNN(Clasificacion):
         if ax is None:
             fig, ax = plt.subplots(1, 1, figsize=(15, 10), dpi=200)
         colors = list(dict(**mcolors.CSS4_COLORS))
-        data = self._df
+        data = self.df
         variable_predict = self.target
         df_dist = pd.crosstab(
             index=data[variable_predict], columns="valor"
@@ -551,7 +551,7 @@ class KNN(Clasificacion):
         plt.style.use('seaborn-v0_8-bright')
         if ax is None:
             fig, ax = plt.subplots(1, 1, figsize=(15, 10), dpi=200)
-        data = self._df
+        data = self.df
         variable_predict = self.target
         df_cross = pd.crosstab(
             index=data[var], columns=data[variable_predict],
@@ -593,7 +593,7 @@ class KNN(Clasificacion):
         """
         plt.style.use('seaborn-v0_8-bright')
         sns.FacetGrid(
-            self._df, hue=self.target, height=8, aspect=1.8,
+            self.df, hue=self.target, height=8, aspect=1.8,
         ).map(sns.kdeplot, var, fill=True).add_legend()
 
     # ═══════════════════════════════════════════════════════════════════════
