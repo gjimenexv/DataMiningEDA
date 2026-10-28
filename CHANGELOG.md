@@ -10,8 +10,34 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 Planned additions:
+- `pckModelosAvanzados`: models from upcoming weeks (see its `CHANGELOG.md`)
 - Additional `Clasificacion` algorithms (Decision Tree, Random Forest, …)
 - Additional `Regresion` algorithms (Linear, Logistic, …)
+
+---
+
+## [0.7.0] — 2026-10-28
+
+### Added
+- **New package `pckModelosAvanzados/`** for the *Minería de Datos Avanzada*
+  course (BCE0019), with one sub-folder per model, each holding the class
+  (`<modelo>.py`), a non-technical usage guide (`<Modelo>.md`) and an
+  `__init__.py`:
+  - Semana 1: `KNN`
+  - Semana 2: `ArbolDecision` (CART, Gini helpers, pruning path)
+  - Semana 3: `Bagging`, `RandomForest`
+  - Semana 4: `AdaBoost`
+  - Semana 5: `GradientBoosting`, `XGBoost` (optional `xgboost` dependency)
+  - Semana 6: `LDA`, `QDA`
+- `ModeloBase` shared by all models: stratified split, scaling inside a
+  `Pipeline`, per-class metrics, stratified k-fold CV, Grid/Random/Bayes
+  hyperparameter search, cost-based threshold optimization and common plots
+- `comparar_modelos()` for side-by-side model comparison
+- Package-level `README.md`, `CONTRIBUTING.md` and `CHANGELOG.md`
+  (`pckModelosAvanzados/CHANGELOG.md`) so each following course week can be
+  tracked independently of `pckEDA`
+- `Avanzada/Indice_Modelos_Mineria_Avanzada.md` — course model index (weeks 1–6)
+  that the package follows
 
 ---
 
