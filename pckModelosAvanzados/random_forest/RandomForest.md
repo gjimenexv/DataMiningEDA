@@ -1,5 +1,9 @@
 # RandomForest — Bosque Aleatorio (Semana 3)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Ensamble paralelo (bagging) · Semana 3
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Igual que Bagging (muchos árboles + votación), pero cada árbol, en cada pregunta,
@@ -25,7 +29,7 @@ import pckModelosAvanzados as pm
 rf = pm.RandomForest(df, target="default", n_estimators=300, class_weight="balanced")
 rf.ajustar()
 print(rf.evaluar())
-print("Exactitud out-of-bag:", rf.oob_score)
+print("Exactitud out-of-bag:", rf.exactitud_oob)
 rf.plot_importancia_variables(top=10)
 ```
 
@@ -42,7 +46,7 @@ rf.plot_importancia_variables(top=10)
 
 ## Propiedades propias
 
-- `rf.oob_score`: exactitud out-of-bag.
+- `rf.exactitud_oob`: exactitud out-of-bag.
 - `rf.importancia_variables()`: Series ordenada con la importancia de cada variable.
 
 ## Ejemplo con tuneo

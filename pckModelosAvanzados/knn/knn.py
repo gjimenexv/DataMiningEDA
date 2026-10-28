@@ -18,6 +18,8 @@ class KNN(ModeloBase):
     """
 
     nombre = "KNN"
+    _HIPERPARAMETROS = ("n_neighbors", "weights", "metric", "p",)
+
 
     def __init__(self, df, target, n_neighbors=5, weights="uniform",
                  metric="minkowski", p=2, scaler="standard", random_state=42):
@@ -36,21 +38,73 @@ class KNN(ModeloBase):
                 obligatorio salvo que los datos ya estén en la misma escala.
             random_state: Semilla para el split.
         """
-        super().__init__(df, target, scaler, random_state, n_neighbors=n_neighbors,
-                         weights=weights, metric=metric, p=p)
+        super().__init__(df, target, scaler, random_state)
+        self.__n_neighbors = n_neighbors
+        self.__weights = weights
+        self.__metric = metric
+        self.__p = p
+
+    # ─── Hiperparámetros ────────────────────────────────────────────────────
+    @property
+    def n_neighbors(self):
+        """Número de vecinos K."""
+        return self.__n_neighbors
+
+    @n_neighbors.setter
+    def n_neighbors(self, n_neighbors):
+        """Args:
+            n_neighbors: Nuevo valor.
+        """
+        self.__n_neighbors = n_neighbors
+
+    @property
+    def weights(self):
+        """Función de pesos: ``'uniform'`` o ``'distance'``."""
+        return self.__weights
+
+    @weights.setter
+    def weights(self, weights):
+        """Args:
+            weights: Nuevo valor.
+        """
+        self.__weights = weights
+
+    @property
+    def metric(self):
+        """Métrica de distancia."""
+        return self.__metric
+
+    @metric.setter
+    def metric(self, metric):
+        """Args:
+            metric: Nuevo valor.
+        """
+        self.__metric = metric
+
+    @property
+    def p(self):
+        """Parámetro de Minkowski (1 = Manhattan, 2 = Euclidiana)."""
+        return self.__p
+
+    @p.setter
+    def p(self, p):
+        """Args:
+            p: Nuevo valor.
+        """
+        self.__p = p
 
     def _crear_modelo(self):
         """Crea el ``KNeighborsClassifier`` con los hiperparámetros actuales."""
-        return KNeighborsClassifier(**self._hp)
+        return KNeighborsClassifier(**self.hiperparametros)
 
     def _curva_k(self, k_range, cv):
         """Exactitud media por validación cruzada para cada K (solo en train)."""
         self._verificar_datos()
-        folds = StratifiedKFold(cv, shuffle=True, random_state=self._random_state)
+        folds = StratifiedKFold(cv, shuffle=True, random_state=self.random_state)
         medias = []
         for k in k_range:
             pipe = self._crear_pipeline().set_params(modelo__n_neighbors=k)
-            medias.append(cross_val_score(pipe, self._X_train, self._y_train,
+            medias.append(cross_val_score(pipe, self.X_train, self.y_train,
                                           cv=folds, n_jobs=-1).mean())
         return pd.Series(medias, index=list(k_range), name="accuracy_cv")
 
@@ -82,8 +136,8 @@ class KNN(ModeloBase):
         curva = self._curva_k(k_range, cv)
         ax = ax or plt.gca()
         ax.plot(curva.index, curva.values, marker="o", color="steelblue")
-        ax.axvline(self._hp["n_neighbors"], color="tomato", ls="--",
-                   label=f"K actual = {self._hp['n_neighbors']}")
+        ax.axvline(self.n_neighbors, color="tomato", ls="--",
+                   label=f"K actual = {self.n_neighbors}")
         ax.set_xlabel("Número de vecinos (K)")
         ax.set_ylabel("Exactitud (CV)")
         ax.set_title("KNN — exactitud vs. K")
@@ -103,17 +157,17 @@ class KNN(ModeloBase):
         """
         self._verificar_datos()
         cols = [var_x, var_y]
-        pipe = self._crear_pipeline().fit(self._X_train[cols], self._y_train)
+        pipe = self._crear_pipeline().fit(self.X_train[cols], self.y_train)
         xx, yy = np.meshgrid(
-            np.linspace(self._X[var_x].min(), self._X[var_x].max(), resolucion),
-            np.linspace(self._X[var_y].min(), self._X[var_y].max(), resolucion))
+            np.linspace(self.X[var_x].min(), self.X[var_x].max(), resolucion),
+            np.linspace(self.X[var_y].min(), self.X[var_y].max(), resolucion))
         malla = pd.DataFrame(np.c_[xx.ravel(), yy.ravel()], columns=cols)
         codigos = pd.Categorical(pipe.predict(malla), categories=self.clases).codes
         ax = ax or plt.gca()
         ax.contourf(xx, yy, codigos.reshape(xx.shape), alpha=0.3, cmap="coolwarm")
-        ax.scatter(self._X_train[var_x], self._X_train[var_y],
-                   c=pd.Categorical(self._y_train, categories=self.clases).codes,
+        ax.scatter(self.X_train[var_x], self.X_train[var_y],
+                   c=pd.Categorical(self.y_train, categories=self.clases).codes,
                    cmap="coolwarm", edgecolor="k", s=20)
         ax.set_xlabel(var_x)
         ax.set_ylabel(var_y)
-        ax.set_title(f"KNN (K={self._hp['n_neighbors']}) — frontera de decisión")
+        ax.set_title(f"KNN (K={self.n_neighbors}) — frontera de decisión")

@@ -19,6 +19,38 @@ Planned additions (per the course syllabus, see
 
 ---
 
+## [0.2.0] — 2026-10-28
+
+### Changed
+- `ModeloBase` now inherits from `pckEDA.supervisado.Clasificacion`
+  (`AnalisisDatosExploratorio → Supervisado → Clasificacion → ModeloBase`), so every
+  model can use the EDA cleaning methods and the `df`, `target`, `X`, `y`,
+  `X_train`, ... properties of `Supervisado`
+- All state and every model hyperparameter are exposed through explicit getters and
+  setters (same convention as `pckEDA`); `configurar()` and
+  `buscar_hiperparametros()` assign them through those setters
+- `preparar_datos()` signature aligned with `Supervisado` (`test_size`,
+  `random_state`, plus `estratificar`); `evaluar(y_test, y_pred)` still works like
+  the `Supervisado` version
+- `Bagging.oob_score` / `RandomForest.oob_score` result renamed `exactitud_oob`
+  (the name now belongs to the hyperparameter)
+- `XGBoost` training moved to a `_entrenar()` hook in `ModeloBase`
+
+### Added
+- `tipo_aprendizaje` and `tarea` class attributes (all current models:
+  *supervisado* / *clasificación*)
+- Classification tag (supervised/unsupervised, task, family, week) in every
+  model's `.md`
+- Setter validation: `scaler`, `umbral` and unknown hyperparameters raise
+  `ValueError`
+
+### Documentation
+- `QDA.md`: tip for the "covariance matrix is not full rank" error
+- `README.md` / `CONTRIBUTING.md` updated for the inheritance and
+  getter/setter conventions; `libomp` note for XGBoost on macOS
+
+---
+
 ## [0.1.0] — 2026-10-28
 
 Initial release covering Semanas 1 to 6.

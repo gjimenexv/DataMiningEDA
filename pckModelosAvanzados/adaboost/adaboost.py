@@ -17,6 +17,8 @@ class AdaBoost(ModeloBase):
     """
 
     nombre = "AdaBoost"
+    _HIPERPARAMETROS = ("n_estimators", "learning_rate", "profundidad_base",)
+
 
     def __init__(self, df, target, n_estimators=50, learning_rate=1.0,
                  profundidad_base=1, random_state=42):
@@ -32,22 +34,59 @@ class AdaBoost(ModeloBase):
                 (el valor clásico).
             random_state: Semilla.
         """
-        self._profundidad_base = profundidad_base
-        super().__init__(df, target, None, random_state,
-                         n_estimators=n_estimators, learning_rate=learning_rate)
+        super().__init__(df, target, None, random_state)
+        self.__n_estimators = n_estimators
+        self.__learning_rate = learning_rate
+        self.__profundidad_base = profundidad_base
+
+    # ─── Hiperparámetros ────────────────────────────────────────────────────
+    @property
+    def n_estimators(self):
+        """Número de clasificadores débiles."""
+        return self.__n_estimators
+
+    @n_estimators.setter
+    def n_estimators(self, n_estimators):
+        """Args:
+            n_estimators: Nuevo valor.
+        """
+        self.__n_estimators = n_estimators
+
+    @property
+    def learning_rate(self):
+        """Contracción del aporte de cada clasificador."""
+        return self.__learning_rate
+
+    @learning_rate.setter
+    def learning_rate(self, learning_rate):
+        """Args:
+            learning_rate: Nuevo valor.
+        """
+        self.__learning_rate = learning_rate
+
+    @property
+    def profundidad_base(self):
+        """Profundidad de cada árbol débil (1 = *stump*)."""
+        return self.__profundidad_base
+
+    @profundidad_base.setter
+    def profundidad_base(self, profundidad_base):
+        """Args:
+            profundidad_base: Nuevo valor.
+        """
+        self.__profundidad_base = profundidad_base
 
     def _crear_modelo(self):
         """Crea el ``AdaBoostClassifier`` con árboles de profundidad baja."""
-        base = DecisionTreeClassifier(max_depth=self._profundidad_base)
-        return AdaBoostClassifier(estimator=base, random_state=self._random_state,
-                                  **self._hp)
+        base = DecisionTreeClassifier(max_depth=self.profundidad_base)
+        hp = self.hiperparametros
+        hp.pop("profundidad_base")
+        return AdaBoostClassifier(estimator=base, random_state=self.random_state, **hp)
 
     def _aplicar_params(self, params):
         """Separa la profundidad del árbol base (``estimator__max_depth``)."""
-        params = dict(params)
-        for clave in ("estimator__max_depth", "profundidad_base"):
-            if clave in params:
-                self._profundidad_base = params.pop(clave)
+        params = {("profundidad_base" if k == "estimator__max_depth" else k): v
+                  for k, v in params.items()}
         super()._aplicar_params(params)
 
     def pesos_clasificadores(self):
@@ -73,8 +112,8 @@ class AdaBoost(ModeloBase):
         """
         self._verificar_ajustado()
         est = self.estimador
-        train = [(p == self._y_train).mean() for p in est.staged_predict(self._X_train)]
-        test = [(p == self._y_test).mean() for p in est.staged_predict(self._X_test)]
+        train = [(p == self.y_train).mean() for p in est.staged_predict(self.X_train)]
+        test = [(p == self.y_test).mean() for p in est.staged_predict(self.X_test)]
         return pd.DataFrame({"train": train, "test": test},
                             index=range(1, len(train) + 1)).rename_axis("n_estimators")
 

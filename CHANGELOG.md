@@ -29,7 +29,8 @@ Planned additions:
   - Semana 4: `AdaBoost`
   - Semana 5: `GradientBoosting`, `XGBoost` (optional `xgboost` dependency)
   - Semana 6: `LDA`, `QDA`
-- `ModeloBase` shared by all models: stratified split, scaling inside a
+- `ModeloBase` shared by all models (inherits from `pckEDA`'s `Clasificacion`, hyperparameters
+  exposed as getters/setters, each model tagged *supervisado / clasificación* in its `.md`): stratified split, scaling inside a
   `Pipeline`, per-class metrics, stratified k-fold CV, Grid/Random/Bayes
   hyperparameter search, cost-based threshold optimization and common plots
 - `comparar_modelos()` for side-by-side model comparison

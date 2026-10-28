@@ -3,7 +3,8 @@
 Paquete modular con una **clase por cada modelo visto en el curso** BCE0019 Minería de
 Datos Avanzada (LEAD University). Todos los modelos comparten el mismo flujo de uso,
 las mismas métricas y los mismos gráficos, de modo que cambiar de algoritmo es cambiar
-una línea. Complementa a `pckEDA` (análisis exploratorio y no supervisado).
+una línea. Se apoya en `pckEDA`: cada modelo **hereda de `AnalisisDatosExploratorio`**, así que puede
+limpiar y explorar los datos con los mismos métodos antes de modelar.
 
 El temario y la teoría de cada semana están en
 [`Avanzada/Indice_Modelos_Mineria_Avanzada.md`](../Avanzada/Indice_Modelos_Mineria_Avanzada.md).
@@ -12,17 +13,21 @@ El temario y la teoría de cada semana están en
 
 ## ¿Qué incluye?
 
-| Semana | Clase | Modelo | Documentación |
-|:---:|---|---|---|
-| 1 | `KNN` | K-Nearest Neighbors | [KNN.md](knn/KNN.md) |
-| 2 | `ArbolDecision` | Árbol de decisión (CART) | [ArbolDecision.md](arbol_decision/ArbolDecision.md) |
-| 3 | `Bagging` | Bagging de árboles | [Bagging.md](bagging/Bagging.md) |
-| 3 | `RandomForest` | Random Forest | [RandomForest.md](random_forest/RandomForest.md) |
-| 4 | `AdaBoost` | AdaBoost | [AdaBoost.md](adaboost/AdaBoost.md) |
-| 5 | `GradientBoosting` | Gradient Boosting | [GradientBoosting.md](gradient_boosting/GradientBoosting.md) |
-| 5 | `XGBoost` | XGBoost | [XGBoost.md](xgb/XGBoost.md) |
-| 6 | `LDA` | Análisis Discriminante Lineal | [LDA.md](lda/LDA.md) |
-| 6 | `QDA` | Análisis Discriminante Cuadrático | [QDA.md](qda/QDA.md) |
+| Semana | Clase | Modelo | Clasificación | Documentación |
+|:---:|---|---|---|---|
+| 1 | `KNN` | K-Nearest Neighbors | Supervisado · clasificación | [KNN.md](knn/KNN.md) |
+| 2 | `ArbolDecision` | Árbol de decisión (CART) | Supervisado · clasificación | [ArbolDecision.md](arbol_decision/ArbolDecision.md) |
+| 3 | `Bagging` | Bagging de árboles | Supervisado · clasificación | [Bagging.md](bagging/Bagging.md) |
+| 3 | `RandomForest` | Random Forest | Supervisado · clasificación | [RandomForest.md](random_forest/RandomForest.md) |
+| 4 | `AdaBoost` | AdaBoost | Supervisado · clasificación | [AdaBoost.md](adaboost/AdaBoost.md) |
+| 5 | `GradientBoosting` | Gradient Boosting | Supervisado · clasificación | [GradientBoosting.md](gradient_boosting/GradientBoosting.md) |
+| 5 | `XGBoost` | XGBoost | Supervisado · clasificación | [XGBoost.md](xgb/XGBoost.md) |
+| 6 | `LDA` | Análisis Discriminante Lineal | Supervisado · clasificación | [LDA.md](lda/LDA.md) |
+| 6 | `QDA` | Análisis Discriminante Cuadrático | Supervisado · clasificación | [QDA.md](qda/QDA.md) |
+
+> Todos los modelos vistos hasta la Semana 6 son de **aprendizaje supervisado** (usan la
+> variable objetivo). Cada clase lo expone en `tipo_aprendizaje` y `tarea`, y cada `.md` lo
+> indica con una etiqueta de clasificación.
 
 Utilidades transversales: `ModeloBase` (clase madre) y `comparar_modelos` (tabla comparativa).
 La validación cruzada y el tuneo de hiperparámetros (Semanas 3 y 4) viven en `ModeloBase`
@@ -43,11 +48,12 @@ import pckModelosAvanzados as pm
 ### Dependencias
 
 ```
+pckEDA             # en la misma carpeta raíz; trae pandas, seaborn, prince, umap-learn
 pandas
 numpy
 matplotlib
 scikit-learn
-xgboost            # solo para XGBoost
+xgboost            # solo para XGBoost (en macOS requiere además: brew install libomp)
 scikit-optimize    # opcional: solo para buscar_hiperparametros(metodo='bayes')
 ```
 
@@ -97,17 +103,21 @@ print(tabla)
 | `importancia_variables()` / `plot_importancia_variables()` | Para modelos basados en árboles |
 | `configurar(**hiperparametros)` | Cambia hiperparámetros (luego `ajustar()`) |
 
-Propiedades: `modelo`, `estimador`, `X_train`, `X_test`, `y_train`, `y_test`,
+Propiedades: `modelo`, `estimador`, `scaler`, `random_state`, `X_train`, `X_test`, `y_train`, `y_test`,
 `predicciones`, `probabilidades`, `matriz_confusion`, `reporte`, `mejores_params`,
-`hiperparametros`, `umbral`, `clases`.
+`hiperparametros`, `umbral`, `clases`, `tipo_aprendizaje`, `tarea`. En `Bagging` y
+`RandomForest`, `exactitud_oob` da la exactitud out-of-bag.
 
 ### Decisiones de diseño
 
 - **Sin fuga de información:** el escalado vive dentro de un `Pipeline`, así que se
   ajusta solo con el train, incluso dentro de la validación cruzada.
 - **Reproducible:** `random_state=42` en el split, la CV y los modelos.
-- **Independiente de `pckEDA`:** solo requiere un `DataFrame` con predictoras numéricas
-  y la columna objetivo; use `pckEDA` antes para limpiar y codificar.
+- **Herencia:** `AnalisisDatosExploratorio → Supervisado → Clasificacion → ModeloBase → <modelo>`.
+  Hereda `df`, `target`, `X`, `y`, `X_train`... y todos los métodos de limpieza de `pckEDA`
+  (`eliminarNulos`, `codificarCategorica`, ...). Las predictoras deben quedar numéricas.
+- **Getters y setters:** cada hiperparámetro es una propiedad (`knn.n_neighbors = 7`), igual
+  que en `pckEDA`. `configurar(**kwargs)` y `buscar_hiperparametros` los asignan por esa vía.
 
 ---
 

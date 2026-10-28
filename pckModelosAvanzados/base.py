@@ -3,12 +3,18 @@
 Concentra todo lo que es común a KNN, árboles, ensambles y análisis
 discriminante: preparación de datos, entrenamiento, métricas, validación
 cruzada, búsqueda de hiperparámetros, umbral económico y gráficos.
-Cada modelo concreto solo debe implementar ``_crear_modelo``.
+Cada modelo concreto solo debe implementar ``_crear_modelo`` y declarar sus
+hiperparámetros como propiedades (getters y setters).
+
+Jerarquía de herencia (todos son aprendizaje **supervisado de clasificación**)::
+
+    AnalisisDatosExploratorio → Supervisado → Clasificacion → ModeloBase → KNN, ...
 """
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pckEDA.supervisado import Clasificacion
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import (
@@ -32,8 +38,14 @@ from sklearn.metrics import (
 _ESCALADORES = {"standard": StandardScaler, "minmax": MinMaxScaler}
 
 
-class ModeloBase:
+class ModeloBase(Clasificacion):
     """Abstracción común de un clasificador supervisado de scikit-learn.
+
+    Hereda de ``Clasificacion`` de ``pckEDA``, por lo que además de lo propio
+    tiene a mano toda la limpieza y exploración de ``AnalisisDatosExploratorio``
+    (``eliminarNulos``, ``codificarCategorica``, gráficos, ...) y las
+    propiedades ``df``, ``target``, ``X``, ``y``, ``X_train``, ``X_test``,
+    ``y_train`` y ``y_test`` de ``Supervisado``.
 
     El flujo de uso es siempre el mismo para todos los modelos::
 
@@ -48,8 +60,11 @@ class ModeloBase:
     """
 
     nombre = "Modelo"
+    tipo_aprendizaje = "supervisado"
+    tarea = "clasificación"
+    _HIPERPARAMETROS = ()
 
-    def __init__(self, df, target, scaler=None, random_state=42, **hiperparametros):
+    def __init__(self, df, target, scaler=None, random_state=42):
         """Inicializa el modelo con un DataFrame y la variable objetivo.
 
         Args:
@@ -59,8 +74,6 @@ class ModeloBase:
             scaler: ``None`` (sin escalar), ``'standard'`` (z-score) o
                 ``'minmax'`` (rango [0, 1]).
             random_state: Semilla para reproducibilidad. Por defecto 42.
-            **hiperparametros: Hiperparámetros del estimador de scikit-learn
-                (por ejemplo ``max_depth=5``). Se pasan tal cual al crear el modelo.
 
         Raises:
             ValueError: Si ``target`` no está en el DataFrame o el escalador
@@ -68,100 +81,147 @@ class ModeloBase:
         """
         if target not in df.columns:
             raise ValueError(f"La columna objetivo '{target}' no existe en el DataFrame.")
+        super().__init__(df, target)
+        self.__scaler = None
+        self.scaler = scaler
+        self.__random_state = random_state
+        self.__modelo = None
+        self.__predicciones = None
+        self.__probabilidades = None
+        self.__mejores_params = None
+        self.__busqueda = None
+        self.__umbral = 0.5
+
+    # ─── Propiedades ────────────────────────────────────────────────────────
+
+    @property
+    def scaler(self):
+        """Tipo de escalador: ``None``, ``'standard'`` o ``'minmax'``."""
+        return self.__scaler
+
+    @scaler.setter
+    def scaler(self, scaler):
+        """Args:
+            scaler: ``None``, ``'standard'`` o ``'minmax'``.
+
+        Raises:
+            ValueError: Si el valor no es válido.
+        """
         if scaler is not None and scaler not in _ESCALADORES:
             raise ValueError("scaler debe ser None, 'standard' o 'minmax'.")
-        self._df = df
-        self._target = target
-        self._scaler = scaler
-        self._random_state = random_state
-        self._hp = dict(hiperparametros)
-        self._X = self._y = None
-        self._X_train = self._X_test = self._y_train = self._y_test = None
-        self._modelo = None
-        self._predicciones = None
-        self._probabilidades = None
-        self._mejores_params = None
-        self._busqueda = None
-        self._umbral = 0.5
-
-    # ─── Propiedades de solo lectura ────────────────────────────────────────
+        self.__scaler = scaler
 
     @property
-    def df(self):
-        """DataFrame original con el que se creó el modelo."""
-        return self._df
+    def random_state(self):
+        """Semilla usada en el split, la validación cruzada y los modelos."""
+        return self.__random_state
 
-    @property
-    def target(self):
-        """Nombre de la columna objetivo."""
-        return self._target
+    @random_state.setter
+    def random_state(self, random_state):
+        """Args:
+            random_state: Nueva semilla.
+        """
+        self.__random_state = random_state
 
     @property
     def modelo(self):
         """Pipeline de scikit-learn ajustado (escalador + estimador)."""
-        return self._modelo
+        return self.__modelo
+
+    @modelo.setter
+    def modelo(self, modelo):
+        """Args:
+            modelo: Nuevo Pipeline (o ``None`` para descartar el entrenado).
+        """
+        self.__modelo = modelo
 
     @property
     def estimador(self):
         """Estimador final de scikit-learn, sin el escalador."""
-        return None if self._modelo is None else self._modelo[-1]
-
-    @property
-    def X_train(self):
-        """Variables predictoras de entrenamiento (sin escalar)."""
-        return self._X_train
-
-    @property
-    def X_test(self):
-        """Variables predictoras de prueba (sin escalar)."""
-        return self._X_test
-
-    @property
-    def y_train(self):
-        """Etiquetas de entrenamiento."""
-        return self._y_train
-
-    @property
-    def y_test(self):
-        """Etiquetas de prueba."""
-        return self._y_test
+        return None if self.__modelo is None else self.__modelo[-1]
 
     @property
     def predicciones(self):
         """Predicciones sobre el conjunto de prueba (usan el umbral actual)."""
-        return self._predicciones
+        return self.__predicciones
+
+    @predicciones.setter
+    def predicciones(self, predicciones):
+        """Args:
+            predicciones: Nuevo array de predicciones.
+        """
+        self.__predicciones = predicciones
 
     @property
     def probabilidades(self):
         """Probabilidades por clase sobre el conjunto de prueba."""
-        return self._probabilidades
+        return self.__probabilidades
 
-    @property
-    def clases(self):
-        """Lista ordenada de las clases de la variable objetivo."""
-        return sorted(self._df[self._target].unique().tolist())
+    @probabilidades.setter
+    def probabilidades(self, probabilidades):
+        """Args:
+            probabilidades: Nueva matriz de probabilidades.
+        """
+        self.__probabilidades = probabilidades
 
     @property
     def mejores_params(self):
         """Mejores hiperparámetros hallados por ``buscar_hiperparametros``."""
-        return self._mejores_params
+        return self.__mejores_params
+
+    @mejores_params.setter
+    def mejores_params(self, mejores_params):
+        """Args:
+            mejores_params: Nuevo diccionario de mejores hiperparámetros.
+        """
+        self.__mejores_params = mejores_params
 
     @property
     def umbral(self):
         """Umbral de decisión (solo binario). 0.5 por defecto."""
-        return self._umbral
+        return self.__umbral
+
+    @umbral.setter
+    def umbral(self, umbral):
+        """Cambia el umbral y recalcula las predicciones si el modelo está ajustado.
+
+        Args:
+            umbral: Valor entre 0 y 1. Bajarlo sube el recall y baja la precision.
+
+        Raises:
+            ValueError: Si el valor no está en [0, 1] o el problema no es binario.
+        """
+        if not 0 <= umbral <= 1:
+            raise ValueError("El umbral debe estar entre 0 y 1.")
+        if self.__modelo is not None:
+            if not self._es_binario():
+                raise ValueError("El umbral solo aplica a problemas binarios.")
+            self.__umbral = float(umbral)
+            self._calcular_predicciones()
+        else:
+            self.__umbral = float(umbral)
+
+    @property
+    def clases(self):
+        """Lista ordenada de las clases de la variable objetivo."""
+        return sorted(self.df[self.target].unique().tolist())
 
     @property
     def matriz_confusion(self):
         """Matriz de confusión sobre el conjunto de prueba."""
         self._verificar_ajustado()
-        return confusion_matrix(self._y_test, self._predicciones, labels=self.clases)
+        return confusion_matrix(self.y_test, self.__predicciones, labels=self.clases)
 
     @property
     def reporte(self):
         """Reporte de clasificación (precision, recall, F1 por clase) como texto."""
         self._verificar_ajustado()
-        return classification_report(self._y_test, self._predicciones, zero_division=0)
+        return classification_report(self.y_test, self.__predicciones, zero_division=0)
+
+    @property
+    def hiperparametros(self):
+        """Diccionario con los hiperparámetros declarados en ``_HIPERPARAMETROS``."""
+        return {n: getattr(self, n) for n in self._HIPERPARAMETROS}
 
     # ─── Construcción del modelo ────────────────────────────────────────────
 
@@ -182,41 +242,68 @@ class ModeloBase:
             ``Pipeline`` de scikit-learn sin ajustar.
         """
         pasos = []
-        if self._scaler is not None:
-            pasos.append(("escalador", _ESCALADORES[self._scaler]()))
+        if self.__scaler is not None:
+            pasos.append(("escalador", _ESCALADORES[self.__scaler]()))
         pasos.append(("modelo", self._crear_modelo()))
         return Pipeline(pasos)
 
     def _verificar_datos(self):
         """Prepara los datos con valores por defecto si aún no se hizo."""
-        if self._X_train is None:
+        if self.X_train is None:
             self.preparar_datos()
 
     def _verificar_ajustado(self):
         """Lanza un error claro si el modelo todavía no fue entrenado."""
-        if self._modelo is None:
+        if self.__modelo is None:
             raise RuntimeError("El modelo no está ajustado. Llame primero a ajustar().")
+
+    def _aplicar_params(self, params):
+        """Asigna hiperparámetros usando los setters de cada modelo.
+
+        Args:
+            params: dict nombre -> valor, con nombres de propiedades del modelo.
+
+        Raises:
+            ValueError: Si algún nombre no es un hiperparámetro del modelo.
+        """
+        for nombre, valor in params.items():
+            if not isinstance(getattr(type(self), nombre, None), property):
+                raise ValueError(f"'{nombre}' no es un hiperparámetro de {self.nombre}.")
+            setattr(self, nombre, valor)
+
+    def configurar(self, **hiperparametros):
+        """Cambia hiperparámetros; hay que volver a llamar a ``ajustar()``.
+
+        Args:
+            **hiperparametros: Nombres y valores de las propiedades del modelo.
+        """
+        self._aplicar_params(hiperparametros)
+        self.__modelo = None
 
     # ─── Flujo principal ────────────────────────────────────────────────────
 
-    def preparar_datos(self, test_size=0.2, estratificar=True):
+    def preparar_datos(self, test_size=0.2, random_state=None, estratificar=True):
         """Separa predictoras y target y divide en entrenamiento y prueba.
+
+        Reemplaza al método de ``Supervisado``: no escala aquí (el escalado va
+        dentro del Pipeline) y estratifica por clase.
 
         Args:
             test_size: Proporción del conjunto de prueba. Por defecto 0.2
                 (split 80/20 usado en las tareas del curso).
+            random_state: Semilla del split. Si es None usa la del modelo.
             estratificar: Si es True mantiene la proporción de clases en
                 ambos conjuntos (recomendado, sobre todo con desbalance).
         """
-        self._X = self._df.drop(columns=[self._target])
-        self._y = self._df[self._target]
-        (self._X_train, self._X_test,
-         self._y_train, self._y_test) = train_test_split(
-            self._X, self._y, test_size=test_size,
-            random_state=self._random_state,
-            stratify=self._y if estratificar else None,
+        self.X = self.df.drop(columns=[self.target])
+        self.y = self.df[self.target]
+        (self.X_train, self.X_test,
+         self.y_train, self.y_test) = train_test_split(
+            self.X, self.y, test_size=test_size,
+            random_state=self.__random_state if random_state is None else random_state,
+            stratify=self.y if estratificar else None,
         )
-        self._modelo = None
+        self.__modelo = None
 
     def ajustar(self):
         """Entrena el modelo con el conjunto de entrenamiento.
@@ -225,23 +312,32 @@ class ModeloBase:
         de prueba y restablece el umbral a 0.5.
         """
         self._verificar_datos()
-        self._modelo = self._crear_pipeline()
-        self._modelo.fit(self._X_train, self._y_train)
-        self._umbral = 0.5
+        self.__modelo = self._entrenar()
+        self.__umbral = 0.5
         self._calcular_predicciones()
+
+    def _entrenar(self):
+        """Crea y entrena el Pipeline con el train. Los modelos pueden sobrescribirlo.
+
+        Returns:
+            ``Pipeline`` ajustado.
+        """
+        pipe = self._crear_pipeline()
+        pipe.fit(self.X_train, self.y_train)
+        return pipe
 
     def _calcular_predicciones(self):
         """Actualiza ``predicciones`` y ``probabilidades`` sobre el test."""
-        if hasattr(self._modelo, "predict_proba"):
-            self._probabilidades = self._modelo.predict_proba(self._X_test)
-        self._predicciones = self._predecir_con_umbral(self._X_test)
+        if hasattr(self.__modelo, "predict_proba"):
+            self.__probabilidades = self.__modelo.predict_proba(self.X_test)
+        self.__predicciones = self._predecir_con_umbral(self.X_test)
 
     def _predecir_con_umbral(self, X):
         """Predice clases; en binario aplica el umbral sobre la clase positiva."""
-        if self._es_binario() and self._umbral != 0.5:
-            p = self._modelo.predict_proba(X)[:, 1]
-            return np.where(p >= self._umbral, self.clases[1], self.clases[0])
-        return self._modelo.predict(X)
+        if self._es_binario() and self.__umbral != 0.5:
+            p = self.__modelo.predict_proba(X)[:, 1]
+            return np.where(p >= self.__umbral, self.clases[1], self.clases[0])
+        return self.__modelo.predict(X)
 
     def _es_binario(self):
         """Indica si el problema tiene exactamente dos clases."""
@@ -270,20 +366,29 @@ class ModeloBase:
             Matriz (n_filas, n_clases) con las probabilidades.
         """
         self._verificar_ajustado()
-        return self._modelo.predict_proba(X_nuevo)
+        return self.__modelo.predict_proba(X_nuevo)
 
     # ─── Evaluación ─────────────────────────────────────────────────────────
 
-    def evaluar(self):
+    def evaluar(self, y_test=None, y_pred=None):
         """Calcula las métricas de la Etapa 4 del Credit Default Challenge.
+
+        Si se pasan ``y_test`` y ``y_pred`` se comporta como el ``evaluar`` de
+        ``Supervisado`` (imprime los índices generales).
+
+        Args:
+            y_test: Etiquetas reales (opcional).
+            y_pred: Predicciones (opcional).
 
         Returns:
             dict con ``accuracy``, ``balanced_accuracy``, ``auc`` (solo
             binario y si hay probabilidades) y, por cada clase,
             ``precision_<clase>``, ``recall_<clase>`` y ``f1_<clase>``.
         """
+        if y_test is not None and y_pred is not None:
+            return super().evaluar(y_test, y_pred)
         self._verificar_ajustado()
-        y, p = self._y_test, self._predicciones
+        y, p = self.y_test, self.__predicciones
         prec, rec, f1, _ = precision_recall_fscore_support(
             y, p, labels=self.clases, zero_division=0)
         res = {
@@ -292,8 +397,8 @@ class ModeloBase:
         }
         for c, a, b, d in zip(self.clases, prec, rec, f1):
             res[f"precision_{c}"], res[f"recall_{c}"], res[f"f1_{c}"] = a, b, d
-        if self._es_binario() and self._probabilidades is not None:
-            res["auc"] = roc_auc_score(y, self._probabilidades[:, 1])
+        if self._es_binario() and self.probabilidades is not None:
+            res["auc"] = roc_auc_score(y, self.probabilidades[:, 1])
         return res
 
     def indices_binarios(self):
@@ -329,8 +434,8 @@ class ModeloBase:
             como se pide en las tareas (media ± desviación).
         """
         self._verificar_datos()
-        folds = StratifiedKFold(cv, shuffle=True, random_state=self._random_state)
-        res = cross_validate(self._crear_pipeline(), self._X_train, self._y_train,
+        folds = StratifiedKFold(cv, shuffle=True, random_state=self.random_state)
+        res = cross_validate(self._crear_pipeline(), self.X_train, self.y_train,
                              cv=folds, scoring=list(scoring), n_jobs=-1)
         filas = {m: {"media": res[f"test_{m}"].mean(), "desv_std": res[f"test_{m}"].std()}
                  for m in scoring}
@@ -365,48 +470,30 @@ class ModeloBase:
         """
         self._verificar_datos()
         grid = {f"modelo__{k}": v for k, v in param_grid.items()}
-        folds = StratifiedKFold(cv, shuffle=True, random_state=self._random_state)
+        folds = StratifiedKFold(cv, shuffle=True, random_state=self.random_state)
         base = self._crear_pipeline()
         if metodo == "grid":
             busq = GridSearchCV(base, grid, cv=folds, scoring=scoring, n_jobs=-1)
         elif metodo == "random":
             busq = RandomizedSearchCV(base, grid, n_iter=n_iter, cv=folds,
                                       scoring=scoring, n_jobs=-1,
-                                      random_state=self._random_state)
+                                      random_state=self.random_state)
         elif metodo == "bayes":
             try:
                 from skopt import BayesSearchCV
             except ImportError as e:
                 raise ImportError("metodo='bayes' requiere: pip install scikit-optimize") from e
             busq = BayesSearchCV(base, grid, n_iter=n_iter, cv=folds, scoring=scoring,
-                                 n_jobs=-1, random_state=self._random_state)
+                                 n_jobs=-1, random_state=self.random_state)
         else:
             raise ValueError("metodo debe ser 'grid', 'random' o 'bayes'.")
-        busq.fit(self._X_train, self._y_train)
-        self._busqueda = busq
-        self._mejores_params = {k.replace("modelo__", ""): v
+        busq.fit(self.X_train, self.y_train)
+        self.__busqueda = busq
+        self.mejores_params = {k.replace("modelo__", ""): v
                                 for k, v in busq.best_params_.items()}
-        self._aplicar_params(self._mejores_params)
+        self._aplicar_params(self.mejores_params)
         self.ajustar()
-        return self._mejores_params
-
-    def _aplicar_params(self, params):
-        """Actualiza los hiperparámetros que usará ``_crear_modelo``."""
-        self._hp.update(params)
-
-    @property
-    def hiperparametros(self):
-        """Copia de los hiperparámetros configurados para el estimador."""
-        return dict(self._hp)
-
-    def configurar(self, **hiperparametros):
-        """Cambia hiperparámetros; hay que volver a llamar a ``ajustar()``.
-
-        Args:
-            **hiperparametros: Nombres y valores del estimador de scikit-learn.
-        """
-        self._aplicar_params(hiperparametros)
-        self._modelo = None
+        return self.mejores_params
 
     def resultados_busqueda(self):
         """Tabla con todas las combinaciones evaluadas por la última búsqueda.
@@ -414,9 +501,9 @@ class ModeloBase:
         Returns:
             DataFrame ordenado por el ranking de la búsqueda.
         """
-        if self._busqueda is None:
+        if self.__busqueda is None:
             raise RuntimeError("Aún no se ha ejecutado buscar_hiperparametros().")
-        return pd.DataFrame(self._busqueda.cv_results_).sort_values("rank_test_score")
+        return pd.DataFrame(self.__busqueda.cv_results_).sort_values("rank_test_score")
 
     # ─── Umbral de decisión (solo binario) ──────────────────────────────────
 
@@ -441,8 +528,8 @@ class ModeloBase:
         self._verificar_ajustado()
         if not self._es_binario():
             raise ValueError("optimizar_umbral solo aplica a problemas binarios.")
-        p = self._probabilidades[:, 1]
-        y = (self._y_test == self.clases[1]).to_numpy()
+        p = self.probabilidades[:, 1]
+        y = (self.y_test == self.clases[1]).to_numpy()
         filas = []
         for u in np.linspace(0.01, 0.99, pasos):
             pred = p >= u
@@ -454,8 +541,7 @@ class ModeloBase:
                 "precision": vp / max(vp + fp, 1),
             })
         tabla = pd.DataFrame(filas)
-        self._umbral = float(tabla.loc[tabla["costo"].idxmin(), "umbral"])
-        self._calcular_predicciones()
+        self.umbral = float(tabla.loc[tabla["costo"].idxmin(), "umbral"])
         return tabla
 
     def fijar_umbral(self, umbral):
@@ -467,8 +553,7 @@ class ModeloBase:
         self._verificar_ajustado()
         if not self._es_binario():
             raise ValueError("fijar_umbral solo aplica a problemas binarios.")
-        self._umbral = float(umbral)
-        self._calcular_predicciones()
+        self.umbral = umbral
 
     # ─── Gráficos ───────────────────────────────────────────────────────────
 
@@ -493,8 +578,8 @@ class ModeloBase:
         if not self._es_binario():
             raise ValueError("plot_curva_roc solo aplica a problemas binarios.")
         ax = ax or plt.gca()
-        fpr, tpr, _ = roc_curve(self._y_test, self._probabilidades[:, 1])
-        auc = roc_auc_score(self._y_test, self._probabilidades[:, 1])
+        fpr, tpr, _ = roc_curve(self.y_test, self.probabilidades[:, 1])
+        auc = roc_auc_score(self.y_test, self.probabilidades[:, 1])
         ax.plot(fpr, tpr, label=f"{self.nombre} (AUC = {auc:.3f})")
         ax.plot([0, 1], [0, 1], "--", color="gray")
         ax.set_xlabel("Tasa de falsos positivos")
@@ -515,7 +600,7 @@ class ModeloBase:
         imp = getattr(self.estimador, "feature_importances_", None)
         if imp is None:
             raise AttributeError(f"{self.nombre} no calcula importancia de variables.")
-        return pd.Series(imp, index=self._X_train.columns).sort_values(ascending=False)
+        return pd.Series(imp, index=self.X_train.columns).sort_values(ascending=False)
 
     def plot_importancia_variables(self, top=15, ax=None):
         """Gráfico de barras con las variables más importantes.
@@ -531,6 +616,6 @@ class ModeloBase:
 
     def __str__(self):
         """Resumen corto: nombre, estado y exactitud en el test."""
-        if self._modelo is None:
+        if self.modelo is None:
             return f"{self.nombre}(no ajustado)"
-        return f"{self.nombre}(accuracy={accuracy_score(self._y_test, self._predicciones):.4f})"
+        return f"{self.nombre}(accuracy={accuracy_score(self.y_test, self.predicciones):.4f})"

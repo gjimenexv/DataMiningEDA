@@ -14,6 +14,8 @@ class QDA(ModeloBase):
     """
 
     nombre = "QDA"
+    _HIPERPARAMETROS = ("reg_param",)
+
 
     def __init__(self, df, target, reg_param=0.0, scaler="standard",
                  random_state=42):
@@ -27,8 +29,22 @@ class QDA(ModeloBase):
             scaler: ``'standard'`` (recomendado), ``'minmax'`` o ``None``.
             random_state: Semilla para el split.
         """
-        super().__init__(df, target, scaler, random_state, reg_param=reg_param)
+        super().__init__(df, target, scaler, random_state)
+        self.__reg_param = reg_param
+
+    # ─── Hiperparámetros ────────────────────────────────────────────────────
+    @property
+    def reg_param(self):
+        """Regularización de las covarianzas (0–1)."""
+        return self.__reg_param
+
+    @reg_param.setter
+    def reg_param(self, reg_param):
+        """Args:
+            reg_param: Nuevo valor.
+        """
+        self.__reg_param = reg_param
 
     def _crear_modelo(self):
         """Crea el ``QuadraticDiscriminantAnalysis`` con los hiperparámetros actuales."""
-        return QuadraticDiscriminantAnalysis(**self._hp)
+        return QuadraticDiscriminantAnalysis(**self.hiperparametros)

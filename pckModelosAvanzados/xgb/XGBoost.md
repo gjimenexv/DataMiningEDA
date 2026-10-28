@@ -1,5 +1,9 @@
 # XGBoost — Extreme Gradient Boosting (Semana 5)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Ensamble secuencial (boosting por gradiente) · Semana 5
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Es Gradient Boosting "mejor jugado": **más prudente** (desconfía de hojas con pocos

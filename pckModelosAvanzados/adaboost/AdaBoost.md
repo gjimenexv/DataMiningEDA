@@ -1,5 +1,9 @@
 # AdaBoost — Adaptive Boosting (Semana 4)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Ensamble secuencial (boosting) · Semana 4
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Entrena clasificadores muy simples **uno tras otro**. Después de cada uno, **sube el

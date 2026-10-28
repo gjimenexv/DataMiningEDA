@@ -1,5 +1,9 @@
 # GradientBoosting — Boosting por gradiente (Semana 5)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Ensamble secuencial (boosting por gradiente) · Semana 5
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Empieza con una predicción simple y le va **sumando pequeñas correcciones**. Cada

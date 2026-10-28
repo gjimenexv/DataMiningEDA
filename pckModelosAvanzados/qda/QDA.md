@@ -1,5 +1,9 @@
 # QDA — Análisis Discriminante Cuadrático (Semana 6)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Probabilístico / cuadrático · Semana 6
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Es como [LDA](../lda/LDA.md), pero **permite que cada clase tenga su propia forma y
@@ -42,4 +46,6 @@ qda.plot_matriz_confusion()
 
 ## Consejos
 
+- Si aparece el error *"The covariance matrix of class ... is not full rank"* hay variables
+  muy correlacionadas o redundantes: suba `reg_param` (p. ej. `0.1`) o elimine variables.
 - Compare ambos con `pm.comparar_modelos([pm.LDA(df, "y"), pm.QDA(df, "y")])`.

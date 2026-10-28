@@ -17,8 +17,11 @@ pckModelosAvanzados/
 
 ## Paso 1 — Crear la clase
 
-Herede de `ModeloBase` e implemente **solo** `_crear_modelo`. Todo lo demás (split,
-métricas, CV, tuneo, umbral, gráficos) ya viene incluido.
+Herede de `ModeloBase` (que a su vez hereda de `pckEDA`: `AnalisisDatosExploratorio →
+Supervisado → Clasificacion → ModeloBase`). Implemente `_crear_modelo`, declare los
+hiperparámetros en `_HIPERPARAMETROS` y exponga **cada uno como propiedad con getter y
+setter**, igual que en `pckEDA`. Todo lo demás (split, métricas, CV, tuneo, umbral,
+gráficos) ya viene incluido.
 
 ```python
 # svm/svm.py
@@ -33,6 +36,7 @@ class SVM(ModeloBase):
     """Máquina de vectores de soporte para clasificación."""
 
     nombre = "SVM"
+    _HIPERPARAMETROS = ("C", "kernel")
 
     def __init__(self, df, target, C=1.0, kernel="rbf", scaler="standard",
                  random_state=42):
@@ -46,22 +50,43 @@ class SVM(ModeloBase):
             scaler: ``'standard'``, ``'minmax'`` o ``None``.
             random_state: Semilla.
         """
-        super().__init__(df, target, scaler, random_state, C=C, kernel=kernel)
+        super().__init__(df, target, scaler, random_state)
+        self.__C = C
+        self.__kernel = kernel
+
+    @property
+    def C(self):
+        """Penalización por error."""
+        return self.__C
+
+    @C.setter
+    def C(self, C):
+        """Args:
+            C: Nuevo valor de C.
+        """
+        self.__C = C
+
+    # ... idem para kernel
 
     def _crear_modelo(self):
         """Crea el ``SVC`` con los hiperparámetros actuales."""
-        return SVC(probability=True, random_state=self._random_state, **self._hp)
+        return SVC(probability=True, random_state=self.random_state,
+                   **self.hiperparametros)
 ```
 
 Reglas:
 
-- Los hiperparámetros del estimador se pasan como `**kwargs` a `super().__init__`; quedan
-  en `self._hp` y se usan en `_crear_modelo`.
+- Cada nombre de `_HIPERPARAMETROS` debe ser una propiedad con el **mismo nombre** que el
+  argumento del estimador de scikit-learn; `hiperparametros` los reúne en un dict.
 - Si un hiperparámetro no pertenece al estimador (p. ej. la profundidad del árbol base de
-  AdaBoost), sobrescriba `_aplicar_params` como en `adaboost/adaboost.py`.
+  AdaBoost), quítelo del dict en `_crear_modelo` y sobrescriba `_aplicar_params` como en
+  `adaboost/adaboost.py`.
+- Si el entrenamiento necesita pasos especiales (p. ej. early stopping), sobrescriba
+  `_entrenar()` como en `xgb/xgb.py`.
 - Todos los modelos deben exponer `predict_proba` (use `probability=True` si hace falta)
   para que funcionen `evaluar()` (AUC), `plot_curva_roc()` y `optimizar_umbral()`.
 - Agregue solo métodos propios del modelo (gráficos o diagnósticos particulares).
+- Si el modelo no es un clasificador supervisado, ajuste `tipo_aprendizaje` y `tarea`.
 
 ## Paso 2 — Exportar la clase
 
@@ -79,7 +104,9 @@ __all__ = ["SVM"]
 
 - **Docstrings** (PEP 257) en español en clase y en **cada** método: qué hace, `Args`,
   `Returns`, `Raises`.
-- **`SVM.md`**: guía para no estadísticos con las secciones *¿Qué hace?* (con analogía),
+- **`SVM.md`**: guía para no estadísticos. Debajo del título lleva la etiqueta
+  **Clasificación** (`Aprendizaje supervisado` / `no supervisado`, tarea, familia, semana) y
+  las secciones *¿Qué hace?* (con analogía),
   *¿Cuándo usarlo?*, *Uso básico*, tabla de *Parámetros*, *Métodos propios* y *Consejos*.
   Tome como modelo cualquiera de los `.md` existentes.
 - Agregue una fila a la tabla de [README.md](README.md) y al árbol de estructura.

@@ -1,5 +1,9 @@
 # Bagging — Bootstrap Aggregating (Semana 3)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Ensamble paralelo (bagging) · Semana 3
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Entrena **muchos árboles**, cada uno con una muestra distinta (con reemplazo) de los
@@ -22,7 +26,7 @@ import pckModelosAvanzados as pm
 bag = pm.Bagging(df, target="default", n_estimators=100)
 bag.ajustar()
 print(bag.evaluar())
-print("Exactitud out-of-bag:", bag.oob_score)
+print("Exactitud out-of-bag:", bag.exactitud_oob)
 ```
 
 ## Parámetros
@@ -36,7 +40,7 @@ print("Exactitud out-of-bag:", bag.oob_score)
 
 ## Propiedades propias
 
-- `bag.oob_score`: estimación del accuracy sin necesitar un set de validación.
+- `bag.exactitud_oob`: estimación del accuracy sin necesitar un set de validación.
 
 ## Consejos
 

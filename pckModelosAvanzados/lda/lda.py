@@ -18,6 +18,8 @@ class LDA(ModeloBase):
     """
 
     nombre = "LDA"
+    _HIPERPARAMETROS = ("solver", "shrinkage",)
+
 
     def __init__(self, df, target, solver="svd", shrinkage=None,
                  scaler="standard", random_state=42):
@@ -33,12 +35,38 @@ class LDA(ModeloBase):
             scaler: ``'standard'`` (recomendado), ``'minmax'`` o ``None``.
             random_state: Semilla para el split.
         """
-        super().__init__(df, target, scaler, random_state,
-                         solver=solver, shrinkage=shrinkage)
+        super().__init__(df, target, scaler, random_state)
+        self.__solver = solver
+        self.__shrinkage = shrinkage
+
+    # ─── Hiperparámetros ────────────────────────────────────────────────────
+    @property
+    def solver(self):
+        """Método de cálculo: ``'svd'``, ``'lsqr'`` o ``'eigen'``."""
+        return self.__solver
+
+    @solver.setter
+    def solver(self, solver):
+        """Args:
+            solver: Nuevo valor.
+        """
+        self.__solver = solver
+
+    @property
+    def shrinkage(self):
+        """Regularización de la covarianza (``None``, ``'auto'`` o [0, 1])."""
+        return self.__shrinkage
+
+    @shrinkage.setter
+    def shrinkage(self, shrinkage):
+        """Args:
+            shrinkage: Nuevo valor.
+        """
+        self.__shrinkage = shrinkage
 
     def _crear_modelo(self):
         """Crea el ``LinearDiscriminantAnalysis`` con los hiperparámetros actuales."""
-        return LinearDiscriminantAnalysis(**self._hp)
+        return LinearDiscriminantAnalysis(**self.hiperparametros)
 
     def transformar(self, X=None):
         """Proyecta datos sobre los ejes discriminantes.
@@ -52,8 +80,8 @@ class LDA(ModeloBase):
             DataFrame con columnas ``LD1``, ``LD2``, ...
         """
         self._verificar_ajustado()
-        X = self._X_test if X is None else X
-        Z = self._modelo.transform(X)
+        X = self.X_test if X is None else X
+        Z = self.modelo.transform(X)
         return pd.DataFrame(Z, index=X.index,
                             columns=[f"LD{i + 1}" for i in range(Z.shape[1])])
 
@@ -78,7 +106,7 @@ class LDA(ModeloBase):
         self._verificar_datos()
         filas = {}
         for c in self.clases:
-            cov = np.cov(self._X_train[self._y_train == c].to_numpy(), rowvar=False)
+            cov = np.cov(self.X_train[self.y_train == c].to_numpy(), rowvar=False)
             filas[c] = {"determinante": np.linalg.det(cov), "traza": np.trace(cov)}
         return pd.DataFrame(filas).T
 
@@ -94,12 +122,12 @@ class LDA(ModeloBase):
         ax = ax or plt.gca()
         if Z.shape[1] == 1:
             for c in self.clases:
-                ax.hist(Z.loc[self._y_test == c, "LD1"], alpha=0.6, bins=25, label=str(c))
+                ax.hist(Z.loc[self.y_test == c, "LD1"], alpha=0.6, bins=25, label=str(c))
             ax.set_xlabel("LD1")
             ax.legend()
         else:
             for c in self.clases:
-                m = self._y_test == c
+                m = self.y_test == c
                 ax.scatter(Z.loc[m, "LD1"], Z.loc[m, "LD2"], alpha=0.7, label=str(c))
             ax.set_xlabel("LD1")
             ax.set_ylabel("LD2")

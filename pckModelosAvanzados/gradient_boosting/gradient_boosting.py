@@ -16,6 +16,8 @@ class GradientBoosting(ModeloBase):
     """
 
     nombre = "Gradient Boosting"
+    _HIPERPARAMETROS = ("n_estimators", "learning_rate", "max_depth", "subsample", "n_iter_no_change",)
+
 
     def __init__(self, df, target, n_estimators=100, learning_rate=0.1,
                  max_depth=3, subsample=1.0, n_iter_no_change=None,
@@ -34,13 +36,77 @@ class GradientBoosting(ModeloBase):
                 número de iteraciones.
             random_state: Semilla.
         """
-        super().__init__(df, target, None, random_state, n_estimators=n_estimators,
-                         learning_rate=learning_rate, max_depth=max_depth,
-                         subsample=subsample, n_iter_no_change=n_iter_no_change)
+        super().__init__(df, target, None, random_state)
+        self.__n_estimators = n_estimators
+        self.__learning_rate = learning_rate
+        self.__max_depth = max_depth
+        self.__subsample = subsample
+        self.__n_iter_no_change = n_iter_no_change
+
+    # ─── Hiperparámetros ────────────────────────────────────────────────────
+    @property
+    def n_estimators(self):
+        """Máximo de árboles."""
+        return self.__n_estimators
+
+    @n_estimators.setter
+    def n_estimators(self, n_estimators):
+        """Args:
+            n_estimators: Nuevo valor.
+        """
+        self.__n_estimators = n_estimators
+
+    @property
+    def learning_rate(self):
+        """Tamaño de cada corrección (0.01–0.1)."""
+        return self.__learning_rate
+
+    @learning_rate.setter
+    def learning_rate(self, learning_rate):
+        """Args:
+            learning_rate: Nuevo valor.
+        """
+        self.__learning_rate = learning_rate
+
+    @property
+    def max_depth(self):
+        """Profundidad de cada árbol."""
+        return self.__max_depth
+
+    @max_depth.setter
+    def max_depth(self, max_depth):
+        """Args:
+            max_depth: Nuevo valor.
+        """
+        self.__max_depth = max_depth
+
+    @property
+    def subsample(self):
+        """Fracción de filas por árbol."""
+        return self.__subsample
+
+    @subsample.setter
+    def subsample(self, subsample):
+        """Args:
+            subsample: Nuevo valor.
+        """
+        self.__subsample = subsample
+
+    @property
+    def n_iter_no_change(self):
+        """Iteraciones sin mejora para activar el early stopping (``None`` = desactivado)."""
+        return self.__n_iter_no_change
+
+    @n_iter_no_change.setter
+    def n_iter_no_change(self, n_iter_no_change):
+        """Args:
+            n_iter_no_change: Nuevo valor.
+        """
+        self.__n_iter_no_change = n_iter_no_change
 
     def _crear_modelo(self):
         """Crea el ``GradientBoostingClassifier`` con los hiperparámetros actuales."""
-        return GradientBoostingClassifier(random_state=self._random_state, **self._hp)
+        return GradientBoostingClassifier(random_state=self.random_state, **self.hiperparametros)
 
     def curva_iteraciones(self):
         """Exactitud de train y test acumulando los árboles uno a uno.
@@ -50,8 +116,8 @@ class GradientBoosting(ModeloBase):
         """
         self._verificar_ajustado()
         est = self.estimador
-        train = [(p == self._y_train).mean() for p in est.staged_predict(self._X_train)]
-        test = [(p == self._y_test).mean() for p in est.staged_predict(self._X_test)]
+        train = [(p == self.y_train).mean() for p in est.staged_predict(self.X_train)]
+        test = [(p == self.y_test).mean() for p in est.staged_predict(self.X_test)]
         return pd.DataFrame({"train": train, "test": test},
                             index=range(1, len(train) + 1)).rename_axis("n_estimators")
 

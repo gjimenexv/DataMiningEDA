@@ -1,5 +1,9 @@
 # ArbolDecision — Árbol de decisión CART (Semana 2)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Basado en reglas · Semana 2
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Hace una serie de preguntas de sí/no sobre las variables (*¿el monto es mayor a 660?*)

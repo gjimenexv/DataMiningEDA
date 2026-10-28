@@ -1,5 +1,9 @@
 # LDA — Análisis Discriminante Lineal (Semana 6)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Probabilístico / lineal (también reduce dimensionalidad) · Semana 6
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Busca la **línea (o plano) sobre la cual proyectar los datos para que las clases

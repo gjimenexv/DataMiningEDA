@@ -1,5 +1,9 @@
 # KNN — K-Nearest Neighbors (Semana 1)
 
+**Clasificación:** `Aprendizaje supervisado` · `Clasificación` · Basado en instancias, no paramétrico · Semana 1
+
+> Usa la variable objetivo (`target`) con las etiquetas reales para aprender; no es un método no supervisado.
+
 ## ¿Qué hace?
 
 Clasifica una observación según la **clase más común entre sus K vecinos más cercanos**.

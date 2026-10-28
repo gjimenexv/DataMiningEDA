@@ -17,6 +17,8 @@ class ArbolDecision(ModeloBase):
     """
 
     nombre = "Árbol de decisión"
+    _HIPERPARAMETROS = ("criterion", "max_depth", "min_samples_split", "min_samples_leaf", "ccp_alpha", "class_weight",)
+
 
     def __init__(self, df, target, criterion="gini", max_depth=None,
                  min_samples_split=2, min_samples_leaf=1, ccp_alpha=0.0,
@@ -34,14 +36,90 @@ class ArbolDecision(ModeloBase):
             class_weight: ``'balanced'`` para clases desbalanceadas.
             random_state: Semilla.
         """
-        super().__init__(df, target, None, random_state, criterion=criterion,
-                         max_depth=max_depth, min_samples_split=min_samples_split,
-                         min_samples_leaf=min_samples_leaf, ccp_alpha=ccp_alpha,
-                         class_weight=class_weight)
+        super().__init__(df, target, None, random_state)
+        self.__criterion = criterion
+        self.__max_depth = max_depth
+        self.__min_samples_split = min_samples_split
+        self.__min_samples_leaf = min_samples_leaf
+        self.__ccp_alpha = ccp_alpha
+        self.__class_weight = class_weight
+
+    # ─── Hiperparámetros ────────────────────────────────────────────────────
+    @property
+    def criterion(self):
+        """Criterio de impureza: ``'gini'``, ``'entropy'`` o ``'log_loss'``."""
+        return self.__criterion
+
+    @criterion.setter
+    def criterion(self, criterion):
+        """Args:
+            criterion: Nuevo valor.
+        """
+        self.__criterion = criterion
+
+    @property
+    def max_depth(self):
+        """Profundidad máxima del árbol (``None`` = sin límite)."""
+        return self.__max_depth
+
+    @max_depth.setter
+    def max_depth(self, max_depth):
+        """Args:
+            max_depth: Nuevo valor.
+        """
+        self.__max_depth = max_depth
+
+    @property
+    def min_samples_split(self):
+        """Mínimo de muestras para dividir un nodo."""
+        return self.__min_samples_split
+
+    @min_samples_split.setter
+    def min_samples_split(self, min_samples_split):
+        """Args:
+            min_samples_split: Nuevo valor.
+        """
+        self.__min_samples_split = min_samples_split
+
+    @property
+    def min_samples_leaf(self):
+        """Mínimo de muestras en cada hoja."""
+        return self.__min_samples_leaf
+
+    @min_samples_leaf.setter
+    def min_samples_leaf(self, min_samples_leaf):
+        """Args:
+            min_samples_leaf: Nuevo valor.
+        """
+        self.__min_samples_leaf = min_samples_leaf
+
+    @property
+    def ccp_alpha(self):
+        """Parámetro de poda por costo-complejidad."""
+        return self.__ccp_alpha
+
+    @ccp_alpha.setter
+    def ccp_alpha(self, ccp_alpha):
+        """Args:
+            ccp_alpha: Nuevo valor.
+        """
+        self.__ccp_alpha = ccp_alpha
+
+    @property
+    def class_weight(self):
+        """Pesos por clase (``'balanced'`` para desbalance)."""
+        return self.__class_weight
+
+    @class_weight.setter
+    def class_weight(self, class_weight):
+        """Args:
+            class_weight: Nuevo valor.
+        """
+        self.__class_weight = class_weight
 
     def _crear_modelo(self):
         """Crea el ``DecisionTreeClassifier`` con los hiperparámetros actuales."""
-        return DecisionTreeClassifier(random_state=self._random_state, **self._hp)
+        return DecisionTreeClassifier(random_state=self.random_state, **self.hiperparametros)
 
     @staticmethod
     def gini(y):
@@ -86,7 +164,7 @@ class ArbolDecision(ModeloBase):
         Returns:
             tuple: ``(umbral, gini_ponderado)`` del mejor corte.
         """
-        x, y = self._df[variable].to_numpy(), self._df[self._target].to_numpy()
+        x, y = self.df[variable].to_numpy(), self.df[self.target].to_numpy()
         valores = np.unique(x)
         candidatos = (valores[:-1] + valores[1:]) / 2
         costos = [self.gini_ponderado(y[x <= t], y[x > t]) for t in candidatos]
@@ -100,7 +178,7 @@ class ArbolDecision(ModeloBase):
             str: Una línea por nodo, con la condición y la clase de las hojas.
         """
         self._verificar_ajustado()
-        return export_text(self.estimador, feature_names=list(self._X_train.columns))
+        return export_text(self.estimador, feature_names=list(self.X_train.columns))
 
     def ruta_poda(self):
         """Calcula los valores de ``ccp_alpha`` disponibles para podar.
@@ -110,8 +188,8 @@ class ArbolDecision(ModeloBase):
             podado; sirve para elegir un alpha por validación cruzada.
         """
         self._verificar_datos()
-        arbol = DecisionTreeClassifier(random_state=self._random_state)
-        ruta = arbol.cost_complexity_pruning_path(self._X_train, self._y_train)
+        arbol = DecisionTreeClassifier(random_state=self.random_state)
+        ruta = arbol.cost_complexity_pruning_path(self.X_train, self.y_train)
         return pd.DataFrame({"ccp_alpha": ruta.ccp_alphas, "impureza": ruta.impurities})
 
     def plot_arbol(self, max_depth=3, ax=None):
@@ -124,7 +202,7 @@ class ArbolDecision(ModeloBase):
         self._verificar_ajustado()
         if ax is None:
             _, ax = plt.subplots(figsize=(16, 8))
-        plot_tree(self.estimador, feature_names=list(self._X_train.columns),
+        plot_tree(self.estimador, feature_names=list(self.X_train.columns),
                   class_names=[str(c) for c in self.clases], filled=True,
                   rounded=True, max_depth=max_depth, fontsize=8, ax=ax)
         ax.set_title("Árbol de decisión")
